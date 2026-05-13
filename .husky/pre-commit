@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Pre-commit: format staged files and run quick checks.
+# See docs/conventions/git-workflow.md.
+
+pnpm exec lint-staged

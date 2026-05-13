@@ -1,0 +1,101 @@
+// =============================================================================
+// arcxde — Prisma schema
+//
+// Conventions (see docs/architecture/database.md):
+//   - PascalCase model names → snake_case tables via @@map
+//   - camelCase columns → snake_case via @map
+//   - IDs are prefixed CUIDs: usr_*, org_*, mem_*
+//   - createdAt / updatedAt on every entity, timestamptz always
+//   - FK columns get an index by default
+//   - Soft delete only where the audit/legal requirement justifies it
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres", "metrics"]
+  // Smaller engine for container deploys
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Organizations — the primary tenant boundary
+// -----------------------------------------------------------------------------
+model Organization {
+  id             String           @id @default(dbgenerated("'org_' || gen_random_uuid()::text"))
+  name           String           @db.VarChar(100)
+  slug           String           @unique @db.VarChar(50)
+  plan           OrganizationPlan @default(free)
+  billingEmail   String?          @map("billing_email") @db.VarChar(254)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships Membership[]
+
+  @@index([createdAt])
+  @@map("organizations")
+}
+
+enum OrganizationPlan {
+  free
+  starter
+  growth
+  enterprise
+
+  @@map("organization_plan")
+}
+
+// -----------------------------------------------------------------------------
+// Users — global, not scoped to an organization
+// -----------------------------------------------------------------------------
+model User {
+  id            String    @id @default(dbgenerated("'usr_' || gen_random_uuid()::text"))
+  email         String    @unique @db.VarChar(254)
+  emailVerified DateTime? @map("email_verified") @db.Timestamptz(6)
+  // Argon2id hash; null only for SSO-only users
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  fullName      String?   @map("full_name") @db.VarChar(100)
+  // null until MFA enrolled
+  mfaSecret     String?   @map("mfa_secret") @db.VarChar(255)
+  // Last successful sign-in, for security review and inactivity checks
+  lastSignInAt  DateTime? @map("last_sign_in_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships Membership[]
+
+  @@index([createdAt])
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// Membership — user ↔ organization join, with role
+// -----------------------------------------------------------------------------
+model Membership {
+  id             String   @id @default(dbgenerated("'mem_' || gen_random_uuid()::text"))
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+  role           Role     @default(member)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+enum Role {
+  owner
+  admin
+  member
+
+  @@map("role")
+}

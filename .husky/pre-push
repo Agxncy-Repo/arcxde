@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Pre-push: typecheck + tests. CI runs the same things, but failing locally is
+# 10x cheaper than failing in CI.
+# See docs/conventions/git-workflow.md.
+
+set -e
+
+echo "→ typecheck"
+pnpm typecheck
+
+echo "→ test"
+pnpm test
