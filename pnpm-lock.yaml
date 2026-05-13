@@ -150,6 +150,9 @@ importers:
       eslint-plugin-unused-imports:
         specifier: ^4.1.4
         version: 4.4.1(@typescript-eslint/eslint-plugin@8.59.3(@typescript-eslint/parser@8.59.3(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
       prisma:
         specifier: ^6.1.0
         version: 6.19.3(magicast@0.3.5)(typescript@5.9.3)
