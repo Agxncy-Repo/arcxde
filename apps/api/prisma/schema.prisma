@@ -88,6 +88,7 @@ model User {
   payments           Payment[]
   quizAttempts       QuizAttempt[]
   assessmentAttempts AssessmentAttempt[]
+  lessonProgress UserLessonProgress[]
 
   @@index([createdAt])
   @@map("users")
@@ -165,13 +166,14 @@ model SsoConfig {
   organizationId String      @unique @map("organization_id")
   provider       SsoProvider
   domain         String      @db.VarChar(255) // e.g., "@acme.com"
-  metadata       Json? // provider-specific config
+  metadata       Json?       // provider-specific config
   enabled        Boolean     @default(true)
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([domain])
   @@map("sso_configs")
 }
 
@@ -287,10 +289,80 @@ model Module {
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   assessments Assessment[]
   savedMedia  SavedMedia[] // module-level saved media
+  lessons     Lesson[]     
 
   @@unique([courseId, order])
   @@index([courseId])
   @@map("modules")
+}
+
+// -----------------------------------------------------------------------------
+// Lessons — the smallest teachable unit inside a module
+// -----------------------------------------------------------------------------
+model Lesson {
+  id          String     @id @default(dbgenerated("'les_' || gen_random_uuid()::text"))
+  moduleId    String     @map("module_id")
+  title       String     @db.VarChar(200)
+  description String?    @db.Text
+  type        LessonType
+  content     Json?      // flexible content based on type
+  contentUrl  String?    @map("content_url") @db.VarChar(500) // for videos, PDFs, external links
+  durationSeconds Int?   @map("duration_seconds") // estimated time to complete
+  order       Int
+  isFree      Boolean    @default(false) @map("is_free") // preview lesson (before enrollment)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  module   Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress UserLessonProgress[]
+
+  @@unique([moduleId, order])
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+enum LessonType {
+  video
+  text
+  image_slide
+  interactive
+  sandbox
+  audio
+  pdf
+
+  @@map("lesson_type")
+}
+
+// -----------------------------------------------------------------------------
+// User Lesson Progress — tracks completion per user
+// -----------------------------------------------------------------------------
+model UserLessonProgress {
+  id           String       @id @default(dbgenerated("'ulp_' || gen_random_uuid()::text"))
+  userId       String       @map("user_id")
+  lessonId     String       @map("lesson_id")
+  status       LessonStatus @default(not_started)
+  startedAt    DateTime?    @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime?    @map("completed_at") @db.Timestamptz(6)
+  lastPosition Json?        @map("last_position") // e.g., video timestamp, scroll position
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
+  @@index([status])
+  @@index([userId])
+  @@map("user_lesson_progress")
+}
+
+enum LessonStatus {
+  not_started
+  in_progress
+  completed
+
+  @@map("lesson_status")
 }
 
 model Brief {
