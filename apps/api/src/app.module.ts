@@ -24,7 +24,8 @@ import { PrismaModule } from './modules/prisma/prisma.module.js';
     // needs the requestId or current user without threading them through args.
     ClsModule.forRoot({
       global: true,
-      middleware: { mount: true, setup: (cls, req: { id?: string }) => cls.set('requestId', req.id) },
+      middleware: { mount: false },
+      // middleware: { mount: true,  setup: (cls, req: { id?: string }) => cls.set('requestId', req.id) },
     }),
     PrismaModule,
 
