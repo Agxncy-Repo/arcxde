@@ -1,0 +1,196 @@
+/* =============================================================================
+ * arcxde — design system
+ *
+ * Aesthetic direction: editorial-refined. Warm off-white background, deep ink
+ * foreground, terracotta accent. Distinct from default shadcn-zinc neutrality.
+ *
+ * Tailwind v4 — config lives in CSS via @theme. No tailwind.config.ts needed.
+ * ========================================================================== */
+
+@import "tailwindcss";
+
+/* ---------- Design tokens (light) ---------- */
+:root {
+  /* Surfaces */
+  --background: 36 30% 97%;          /* warm off-white */
+  --foreground: 30 10% 12%;          /* warm deep ink */
+  --card: 36 30% 99%;                /* slightly brighter than bg */
+  --card-foreground: 30 10% 12%;
+  --popover: 36 30% 99%;
+  --popover-foreground: 30 10% 12%;
+
+  /* Brand */
+  --primary: 18 62% 42%;             /* terracotta / clay */
+  --primary-foreground: 36 30% 97%;
+  --primary-soft: 18 55% 92%;        /* primary-tinted surface */
+
+  /* Neutrals */
+  --secondary: 36 18% 92%;
+  --secondary-foreground: 30 10% 18%;
+  --muted: 36 14% 94%;
+  --muted-foreground: 30 6% 42%;
+  --accent: 36 22% 90%;
+  --accent-foreground: 30 10% 12%;
+
+  /* Status */
+  --success: 142 45% 36%;
+  --success-foreground: 36 30% 97%;
+  --warning: 32 88% 48%;
+  --warning-foreground: 30 12% 12%;
+  --destructive: 0 65% 48%;
+  --destructive-foreground: 36 30% 97%;
+  --info: 210 50% 42%;
+  --info-foreground: 36 30% 97%;
+
+  /* Lines */
+  --border: 30 12% 86%;
+  --input: 30 12% 86%;
+  --ring: 18 62% 42%;                /* matches primary — warm focus */
+
+  /* Geometry */
+  --radius: 0.625rem;
+}
+
+/* ---------- Design tokens (dark) ---------- */
+.dark {
+  --background: 30 10% 7%;
+  --foreground: 36 25% 94%;
+  --card: 30 10% 9%;
+  --card-foreground: 36 25% 94%;
+  --popover: 30 10% 9%;
+  --popover-foreground: 36 25% 94%;
+
+  --primary: 18 72% 56%;
+  --primary-foreground: 30 10% 7%;
+  --primary-soft: 18 40% 18%;
+
+  --secondary: 30 8% 14%;
+  --secondary-foreground: 36 20% 92%;
+  --muted: 30 8% 14%;
+  --muted-foreground: 36 8% 64%;
+  --accent: 30 8% 16%;
+  --accent-foreground: 36 25% 94%;
+
+  --success: 142 40% 50%;
+  --success-foreground: 30 10% 7%;
+  --warning: 32 90% 56%;
+  --warning-foreground: 30 10% 7%;
+  --destructive: 0 65% 56%;
+  --destructive-foreground: 36 25% 94%;
+  --info: 210 60% 60%;
+  --info-foreground: 30 10% 7%;
+
+  --border: 30 8% 18%;
+  --input: 30 8% 18%;
+  --ring: 18 72% 56%;
+}
+
+/* ---------- Tailwind v4 theme bridge ----------
+   These @theme blocks expose CSS vars as Tailwind utilities. So
+   `bg-background` works, `text-foreground` works, `border-border` works,
+   `rounded-lg` uses --radius, etc.
+   -------------------------------------------- */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-soft: hsl(var(--primary-soft));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Typography — these are mapped to the next/font CSS variables set in layout.tsx */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ---------- Base styles ---------- */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    font-synthesis: none;
+  }
+
+  /* Editorial-feel selection — warm and intentional */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+    color: hsl(var(--primary));
+  }
+
+  /* Visible focus, NOT a generic blue glow */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+/* ---------- One-off utilities ---------- */
+@layer utilities {
+  /* Subtle paper-grain texture for editorial surfaces.
+     Pure CSS — no asset, no network. */
+  .bg-grain {
+    background-image:
+      radial-gradient(hsl(var(--foreground) / 0.025) 1px, transparent 1px),
+      radial-gradient(hsl(var(--foreground) / 0.015) 1px, transparent 1px);
+    background-size: 16px 16px, 24px 24px;
+    background-position: 0 0, 8px 12px;
+  }
+
+  /* Page-load reveal — staggered via animation-delay on children */
+  .reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: reveal 0.6s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+  }
+
+  @keyframes reveal {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

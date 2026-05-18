@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
     trustProxy: true,
     requestIdHeader: 'x-request-id',
     requestIdLogLabel: 'requestId',
-    bodyLimit: 1_048_576, // 1 MiB
+    bodyLimit: 1_048_576,
     logger: false,
   });
   registerRequestIdHook(fastify.getInstance());
@@ -36,17 +36,24 @@ async function bootstrap(): Promise<void> {
   const config = app.get(AppConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Security headers (CSP defaults are conservative; loosen per route via metadata only)
   await app.register(helmet, {
-    ...(config.isProduction ? {} : { contentSecurityPolicy: false }),
+    ...(config.isProduction
+      ? {}
+      : {
+          contentSecurityPolicy: {
+            directives: {
+              defaultSrc: [`'self'`],
+              styleSrc: [`'self'`, `'unsafe-inline'`],
+              scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+              imgSrc: [`'self'`, 'data:', 'https:'],
+              connectSrc: [`'self'`],
+            },
+          },
+        }),
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
   });
-
-  await app.register(compress, { encodings: ['gzip', 'deflate'] });
-
   await app.register(cookie, {
-    // Secret used to sign cookies that need integrity (CSRF token, etc.).
-    // Auth cookies are HTTP-only and don't rely on signing.
     secret: config.auth.accessSecret,
     parseOptions: { signed: false },
   });
@@ -54,7 +61,6 @@ async function bootstrap(): Promise<void> {
   await app.register(cors, {
     origin: (origin, cb) => {
       const allowed = config.http.corsOrigins;
-      // No Origin header (server-to-server, curl) → allow when not in prod
       if (!origin) {
         cb(null, !config.isProduction);
         return;
@@ -66,18 +72,15 @@ async function bootstrap(): Promise<void> {
     maxAge: 86_400,
   });
 
-  // URI versioning per ADR-0008: routes default to v1, opt out explicitly when needed.
+  // ---- App-level config ----
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.setGlobalPrefix('api', { exclude: ['health', 'ready'] });
 
-  // Fallback validation pipe (we mostly use @ZodBody, but if a route forgets, this still applies).
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
-
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // OpenAPI (Swagger) — disabled in production by default. Enable behind auth for ops.
   if (!config.isProduction) {
     const swagger = new DocumentBuilder()
       .setTitle('arcxde API')
@@ -86,15 +89,21 @@ async function bootstrap(): Promise<void> {
       .addBearerAuth()
       .addCookieAuth('access_token')
       .build();
+
     const doc = SwaggerModule.createDocument(app, swagger);
+    console.log('Routes in spec:', Object.keys(doc.paths || {}));
+
     SwaggerModule.setup('docs', app, doc, {
+      useGlobalPrefix: false,
+      jsonDocumentUrl: '/docs-json',
       swaggerOptions: { persistAuthorization: true },
     });
   }
 
+  await app.register(compress, { encodings: ['gzip', 'deflate'] });
+
   app.enableShutdownHooks();
 
-  // ---- 6. Listen ----
   const { port, host } = config.http;
   await app.listen({ port, host });
 
@@ -103,8 +112,6 @@ async function bootstrap(): Promise<void> {
     logger.log(`Swagger UI: http://${host}:${port}/docs`);
   }
 
-  // Belt-and-braces shutdown: if Nest's own hook hangs, force-exit so the
-  // orchestrator doesn't have to SIGKILL us.
   const onTerm = (signal: NodeJS.Signals): void => {
     logger.log(`Received ${signal}, draining...`);
     const timer = setTimeout(() => {
@@ -122,7 +129,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  // eslint-disable-next-line no-console
   console.error('Fatal bootstrap error:', error);
   process.exit(1);
 });
