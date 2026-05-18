@@ -9,9 +9,10 @@
  *
  * See docs/architecture/observability.md.
  */
+import { randomUUID } from 'node:crypto';
+
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
-import { randomUUID } from 'node:crypto';
 
 import { AppConfigModule } from '../config/app-config.module.js';
 import { AppConfigService } from '../config/app-config.service.js';
@@ -55,13 +56,17 @@ const REDACT_PATHS = [
             }),
             res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }),
           },
-          customLogLevel: (_req, res, err) => {
-            if (err || res.statusCode >= 500) return 'error';
-            if (res.statusCode >= 400) return 'warn';
+          customLogLevel: (_req: unknown, res: { statusCode: number }, err: unknown) => {
+            if (err ?? res.statusCode >= 500) {
+              return 'error';
+            }
+            if (res.statusCode >= 400) {
+              return 'warn';
+            }
             return 'info';
           },
           redact: { paths: REDACT_PATHS, censor: '[REDACTED]' },
-          genReqId: (req) => {
+          genReqId: (req: unknown) => {
             const existing = (req as { id?: string }).id;
             return typeof existing === 'string' && existing.length > 0 ? existing : randomUUID();
           },

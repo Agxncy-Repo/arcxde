@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Caches
+.turbo/
+.eslintcache
+.prettiercache
+
+# Coverage / tests
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
+dist/
+
+# Prisma
+apps/api/prisma/migrations/dev.db*
+
+# Misc
+*.local

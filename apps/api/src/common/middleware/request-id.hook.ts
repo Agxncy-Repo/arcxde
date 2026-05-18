@@ -17,8 +17,9 @@
  *   - the HttpExceptionFilter envelope
  *   - the OpenTelemetry span as a baggage entry
  */
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { v4 as uuid } from 'uuid';
+
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 const CORRELATION_ID_HEADER = 'x-correlation-id';
@@ -28,7 +29,9 @@ const VALID_ID = /^[A-Za-z0-9_-]{8,128}$/;
 
 const pickIncomingId = (req: FastifyRequest): string | null => {
   const headerValue = req.headers[REQUEST_ID_HEADER] ?? req.headers[CORRELATION_ID_HEADER];
-  if (typeof headerValue !== 'string') return null;
+  if (typeof headerValue !== 'string') {
+    return null;
+  }
   return VALID_ID.test(headerValue) ? headerValue : null;
 };
 

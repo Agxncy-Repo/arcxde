@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  extends: ['@app/config'],
+  extends: [require.resolve('@app/config')],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ['./tsconfig.json'],

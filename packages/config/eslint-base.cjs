@@ -43,6 +43,7 @@ module.exports = {
     '@typescript-eslint/require-await': 'error',
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-non-null-assertion': 'warn',
+    '@typescript-eslint/consistent-type-definitions': 'off',
 
     // Unused imports
     'unused-imports/no-unused-imports': 'error',

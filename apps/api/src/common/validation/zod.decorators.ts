@@ -14,9 +14,10 @@
  * from every controller method.
  */
 import { Body, Param, Query } from '@nestjs/common';
-import type { ZodSchema } from 'zod';
 
 import { ZodValidationPipe } from './zod-validation.pipe.js';
+
+import type { ZodSchema } from 'zod';
 
 export const ZodBody = <T>(schema: ZodSchema<T>): ParameterDecorator =>
   Body(new ZodValidationPipe(schema));

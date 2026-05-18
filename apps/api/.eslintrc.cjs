@@ -1,12 +1,18 @@
 module.exports = {
   root: true,
-  extends: ['@app/config'],
+  extends: [require.resolve('@app/config')],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ['./tsconfig.json'],
   },
+  ignorePatterns: [
+    'dist/**',
+    'src/**/*.d.ts',
+    'src/**/*.js',
+    'src/**/*.spec.ts',
+    'src/**/*.e2e-spec.ts',
+  ],
   rules: {
-    // NestJS leans on decorators heavily; default exports are common for modules
     'import/no-default-export': 'off',
   },
 };

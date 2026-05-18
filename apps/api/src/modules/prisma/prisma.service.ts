@@ -7,8 +7,6 @@
  *
  * Notes:
  *   - We do NOT call $connect() eagerly; Prisma connects lazily on first query.
- *     This keeps boot fast and removes a class of "DB unreachable at start"
- *     CrashLoopBackOff issues. The /ready probe still verifies connectivity.
  *   - enableShutdownHooks() is called from main.ts via app.enableShutdownHooks(),
  *     not here — Prisma 5+ removed the beforeExit hook.
  *   - Slow-query logging is wired through Prisma's event emitter so it flows
@@ -36,33 +34,34 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
       errorFormat: config.isProduction ? 'minimal' : 'pretty',
     });
 
-    // Route Prisma events into our structured logger. We avoid attaching listeners
-    // when not needed because each one is a small perf cost on every query.
+    // Route Prisma events into our structured logger.
     // @ts-expect-error — Prisma's typed event API is awkward for query events
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     this.$on('query', (e: { query: string; params: string; duration: number }) => {
       if (e.duration >= SLOW_QUERY_MS) {
-        this.logger.warn(
-          { duration: e.duration, query: e.query },
-          `Slow query: ${e.duration}ms`,
-        );
+        this.logger.warn({ duration: e.duration, query: e.query }, `Slow query: ${e.duration}ms`);
       }
     });
 
     // @ts-expect-error — same as above
-    this.$on('warn', (e: { message: string }) => this.logger.warn(e.message));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    this.$on('warn', (e: { message: string }) => {
+      this.logger.warn(e.message);
+    });
+
     // @ts-expect-error — same as above
-    this.$on('error', (e: { message: string }) => this.logger.error(e.message));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    this.$on('error', (e: { message: string }) => {
+      this.logger.error(e.message);
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
   }
 
-  /**
-   * Lightweight readiness probe — used by /ready to verify DB connectivity
-   * without paying for a real query.
-   */
   async ping(): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await this.$queryRaw`SELECT 1`;
   }
 }

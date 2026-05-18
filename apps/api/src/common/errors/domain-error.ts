@@ -67,10 +67,9 @@ export class DomainError extends Error {
     if (options.details !== undefined) {
       this.details = options.details;
     }
-    // V8 stack capture
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, DomainError);
-    }
+
+    // V8 stack capture — captureStackTrace is V8-specific, guard before calling
+    Error.captureStackTrace?.(this, DomainError);
   }
 
   // ---- Factory helpers — preferred over `new DomainError(...)` at call sites ----

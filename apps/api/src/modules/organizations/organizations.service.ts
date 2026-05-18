@@ -11,16 +11,19 @@
  */
 import { Injectable } from '@nestjs/common';
 
+import { DomainError } from '../../common/errors/domain-error.js';
+
+import {
+  type ListOrganizationsInput,
+  OrganizationsRepository,
+} from './organizations.repository.js';
+
 import type {
   CreateOrganizationBody,
   Organization,
   PaginationMeta,
   UpdateOrganizationBody,
 } from '@app/contracts';
-
-import { DomainError } from '../../common/errors/domain-error.js';
-
-import { ListOrganizationsInput, OrganizationsRepository } from './organizations.repository.js';
 
 @Injectable()
 export class OrganizationsService {

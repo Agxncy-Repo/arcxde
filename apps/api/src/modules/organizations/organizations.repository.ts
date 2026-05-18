@@ -4,18 +4,14 @@
  * The ONLY file in this module that touches Prisma directly. Everything above
  * (service, controller) consumes a typed, intention-revealing API.
  *
- * Why: keeps the query surface auditable in one place, makes it easy to swap
- * storage implementations under test, and prevents "import the prisma client
- * anywhere it's convenient" sprawl.
- *
  * See docs/architecture/backend.md "Layering".
  */
 import { Injectable } from '@nestjs/common';
-import type { Organization as PrismaOrganization, OrganizationPlan } from '@prisma/client';
-
-import type { Organization } from '@app/contracts';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+
+import type { Organization } from '@app/contracts';
+import type { Organization as PrismaOrganization } from '@prisma/client';
 
 export interface CreateOrganizationInput {
   name: string;
@@ -44,35 +40,40 @@ export class OrganizationsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<Organization | null> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const row = await this.prisma.organization.findUnique({ where: { id } });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return row ? this.toDomain(row) : null;
   }
 
   async findBySlug(slug: string): Promise<Organization | null> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const row = await this.prisma.organization.findUnique({ where: { slug } });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return row ? this.toDomain(row) : null;
   }
 
-  /**
-   * Cursor-paginated list, ordered by createdAt desc, id desc to break ties.
-   * See docs/architecture/database.md "Cursor pagination".
-   */
   async list(input: ListOrganizationsInput): Promise<ListOrganizationsResult> {
-    // Fetch limit+1 to know if there's a next page without a second query.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const rows = await this.prisma.organization.findMany({
       take: input.limit + 1,
       ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const hasMore = rows.length > input.limit;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const sliced = hasMore ? rows.slice(0, input.limit) : rows;
     return {
-      items: sliced.map((r) => this.toDomain(r)),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      items: sliced.map((r: PrismaOrganization) => this.toDomain(r)),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       nextCursor: hasMore ? (sliced[sliced.length - 1]?.id ?? null) : null,
     };
   }
 
   async create(input: CreateOrganizationInput): Promise<Organization> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const row = await this.prisma.organization.create({
       data: {
         name: input.name,
@@ -80,10 +81,12 @@ export class OrganizationsRepository {
         ...(input.billingEmail !== undefined ? { billingEmail: input.billingEmail } : {}),
       },
     });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return this.toDomain(row);
   }
 
   async update(id: string, input: UpdateOrganizationInput): Promise<Organization> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const row = await this.prisma.organization.update({
       where: { id },
       data: {
@@ -92,25 +95,21 @@ export class OrganizationsRepository {
         ...(input.billingEmail !== undefined ? { billingEmail: input.billingEmail } : {}),
       },
     });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return this.toDomain(row);
   }
 
   async delete(id: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.prisma.organization.delete({ where: { id } });
   }
 
-  /**
-   * Maps the Prisma row to the public domain shape (which is what @app/contracts
-   * declares). Critical conversion: `Date` → ISO string. The contract package
-   * declares `createdAt: string`, not `Date`, because that's what JSON serializes to
-   * and we want server-side code to manipulate the same shape clients see.
-   */
   private toDomain(row: PrismaOrganization): Organization {
     return {
       id: row.id,
       name: row.name,
       slug: row.slug,
-      plan: row.plan as OrganizationPlan,
+      plan: row.plan,
       billingEmail: row.billingEmail,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),

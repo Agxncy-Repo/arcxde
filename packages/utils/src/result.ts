@@ -8,8 +8,14 @@
  * throw a `DomainError` instead. Don't use Result to suppress errors you don't
  * understand. See docs/conventions/coding-standards.md.
  */
-export type Ok<T> = { readonly ok: true; readonly value: T };
-export type Err<E> = { readonly ok: false; readonly error: E };
+export interface Ok<T> {
+  readonly ok: true;
+  readonly value: T;
+}
+export interface Err<E> {
+  readonly ok: false;
+  readonly error: E;
+}
 export type Result<T, E> = Ok<T> | Err<E>;
 
 export const ok = <T>(value: T): Ok<T> => ({ ok: true, value });
