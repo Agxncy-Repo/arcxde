@@ -11,9 +11,10 @@
     "README.md"
   ],
   "exports": {
+    ".": "./eslint-base.cjs",
+    "./eslint-base": "./eslint-base.cjs",
     "./tsconfig.lib.json": "./tsconfig.lib.json",
-    "./tsconfig.node.json": "./tsconfig.node.json",
-    "./eslint-base": "./eslint-base.cjs"
+    "./tsconfig.node.json": "./tsconfig.node.json"
   },
   "scripts": {
     "lint": "echo \"no source to lint\"",

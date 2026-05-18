@@ -1,7 +1,17 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@app/config/tsconfig.node.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": ".",
@@ -11,12 +21,5 @@
     "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "dist",
-    "node_modules",
-    "**/*.spec.ts",
-    "**/*.e2e-spec.ts",
-    "**/*.test.ts",
-    "test"
-  ]
+  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.e2e-spec.ts", "**/*.test.ts", "test"]
 }

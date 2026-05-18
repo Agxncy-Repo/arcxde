@@ -36,6 +36,7 @@ async function bootstrap(): Promise<void> {
   const config = app.get(AppConfigService);
   const logger = new Logger('Bootstrap');
 
+  // ---- 1. Helmet ----
   await app.register(helmet, {
     ...(config.isProduction
       ? {}
@@ -53,6 +54,7 @@ async function bootstrap(): Promise<void> {
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
   });
+
   await app.register(cookie, {
     secret: config.auth.accessSecret,
     parseOptions: { signed: false },
@@ -72,7 +74,7 @@ async function bootstrap(): Promise<void> {
     maxAge: 86_400,
   });
 
-  // ---- App-level config ----
+  // ---- 2. App-level config ----
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.setGlobalPrefix('api', { exclude: ['health', 'ready'] });
 
@@ -81,6 +83,7 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // ---- 3. Swagger — must be set up BEFORE compress ----
   if (!config.isProduction) {
     const swagger = new DocumentBuilder()
       .setTitle('arcxde API')
@@ -91,7 +94,7 @@ async function bootstrap(): Promise<void> {
       .build();
 
     const doc = SwaggerModule.createDocument(app, swagger);
-    console.log('Routes in spec:', Object.keys(doc.paths || {}));
+    logger.log(`Routes in spec: ${Object.keys(doc.paths).join(', ')}`);
 
     SwaggerModule.setup('docs', app, doc, {
       useGlobalPrefix: false,
@@ -100,6 +103,7 @@ async function bootstrap(): Promise<void> {
     });
   }
 
+  // ---- 4. Compress LAST — after Swagger hooks its static routes ----
   await app.register(compress, { encodings: ['gzip', 'deflate'] });
 
   app.enableShutdownHooks();

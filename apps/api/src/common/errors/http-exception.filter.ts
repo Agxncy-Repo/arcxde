@@ -13,10 +13,11 @@
  *     code).
  */
 import { ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from '@nestjs/common';
-import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
 import { DomainError, isDomainError } from './domain-error.js';
+
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 interface ErrorPayload {
   status: number;
@@ -105,7 +106,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const status = exception.getStatus();
       const response = exception.getResponse();
       const message =
-        typeof response === 'string' ? response : ((response as { message?: string }).message ?? exception.message);
+        typeof response === 'string'
+          ? response
+          : ((response as { message?: string }).message ?? exception.message);
       return {
         status,
         code: this.statusToCode(status),
@@ -122,15 +125,33 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private statusToCode(status: number): string {
-    if (status === 400) return 'BAD_REQUEST';
-    if (status === 401) return 'UNAUTHENTICATED';
-    if (status === 403) return 'FORBIDDEN';
-    if (status === 404) return 'NOT_FOUND';
-    if (status === 409) return 'CONFLICT';
-    if (status === 412) return 'PRECONDITION_FAILED';
-    if (status === 422) return 'VALIDATION_FAILED';
-    if (status === 429) return 'RATE_LIMITED';
-    if (status >= 500) return 'INTERNAL_ERROR';
+    if (status === 400) {
+      return 'BAD_REQUEST';
+    }
+    if (status === 401) {
+      return 'UNAUTHENTICATED';
+    }
+    if (status === 403) {
+      return 'FORBIDDEN';
+    }
+    if (status === 404) {
+      return 'NOT_FOUND';
+    }
+    if (status === 409) {
+      return 'CONFLICT';
+    }
+    if (status === 412) {
+      return 'PRECONDITION_FAILED';
+    }
+    if (status === 422) {
+      return 'VALIDATION_FAILED';
+    }
+    if (status === 429) {
+      return 'RATE_LIMITED';
+    }
+    if (status >= 500) {
+      return 'INTERNAL_ERROR';
+    }
     return 'ERROR';
   }
 

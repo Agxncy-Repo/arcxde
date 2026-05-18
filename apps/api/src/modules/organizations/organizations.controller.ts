@@ -11,9 +11,6 @@
  * Response shapes intentionally match the contract envelopes in
  * docs/conventions/api-design.md.
  */
-import { Controller, Delete, Get, HttpCode, Post, Put } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-
 import {
   type CreateOrganizationBody,
   createOrganizationBodySchema,
@@ -26,6 +23,8 @@ import {
   type UpdateOrganizationBody,
   updateOrganizationBodySchema,
 } from '@app/contracts';
+import { Controller, Delete, Get, HttpCode, Post, Put } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { ZodBody, ZodParam, ZodQuery } from '../../common/validation/zod.decorators.js';
 
@@ -44,13 +43,17 @@ export class OrganizationsController {
   }
 
   @Get(':id')
-  async getOne(@ZodParam(organizationParamsSchema) params: OrganizationParams): Promise<{ data: Organization }> {
+  async getOne(
+    @ZodParam(organizationParamsSchema) params: OrganizationParams,
+  ): Promise<{ data: Organization }> {
     return { data: await this.service.getById(params.id) };
   }
 
   @Post()
   @HttpCode(201)
-  async create(@ZodBody(createOrganizationBodySchema) body: CreateOrganizationBody): Promise<{ data: Organization }> {
+  async create(
+    @ZodBody(createOrganizationBodySchema) body: CreateOrganizationBody,
+  ): Promise<{ data: Organization }> {
     return { data: await this.service.create(body) };
   }
 
