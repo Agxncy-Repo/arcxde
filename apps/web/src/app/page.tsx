@@ -36,6 +36,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { fetchApiHealth } from '@/lib/api-client';
+import Link from 'next/link';
 
 // Server-side health probe with sensible fallback.
 async function getApiStatus(): Promise<
@@ -62,11 +63,11 @@ export default async function HomePage() {
     <main className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
       {/* ---------- NAVBAR ---------- */}
       <nav className="reveal flex items-center justify-between" style={{ animationDelay: '0ms' }}>
-        <a href="/" className="flex items-center gap-2 text-lg tracking-tight">
+        <Link href="/" className="flex items-center gap-2 text-lg tracking-tight">
           <span className="font-semibold">arc</span>
           <span className="font-serif italic text-primary">x</span>
           <span className="font-semibold">de</span>
-        </a>
+        </Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <a href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
