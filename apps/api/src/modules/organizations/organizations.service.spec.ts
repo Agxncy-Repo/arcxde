@@ -10,8 +10,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Organization } from '@app/contracts';
 
-import { DomainError, isDomainError } from '../../common/errors/domain-error.js';
-
 import type { OrganizationsRepository } from './organizations.repository.js';
 import { OrganizationsService } from './organizations.service.js';
 
@@ -56,9 +54,13 @@ describe('OrganizationsService', () => {
     it('throws NOT_FOUND DomainError when missing', async () => {
       vi.mocked(repo.findById).mockResolvedValue(null);
 
-      await expect(service.getById('org_missing0000000000000')).rejects.toSatisfy(
-        (e: unknown) => isDomainError(e) && e.code === 'ORGANIZATION_NOT_FOUND',
-      );
+      // Use toMatchObject instead of instanceof/isDomainError to avoid
+      // cross-module identity issues with NodeNext resolution
+      await expect(service.getById('org_missing0000000000000')).rejects.toMatchObject({
+        code: 'ORGANIZATION_NOT_FOUND',
+        kind: 'NOT_FOUND',
+        httpStatus: 404,
+      });
     });
   });
 
@@ -77,10 +79,14 @@ describe('OrganizationsService', () => {
     it('throws CONFLICT when slug is taken', async () => {
       vi.mocked(repo.findBySlug).mockResolvedValue(fixture());
 
-      const result = service.create({ name: 'Acme', slug: 'acme' });
+      // Assert everything in one rejects chain — re-awaiting a settled
+      // rejection produces inconsistent results across Vitest versions
+      await expect(service.create({ name: 'Acme', slug: 'acme' })).rejects.toMatchObject({
+        code: 'ORGANIZATION_SLUG_TAKEN',
+        kind: 'CONFLICT',
+        httpStatus: 409,
+      });
 
-      await expect(result).rejects.toBeInstanceOf(DomainError);
-      await expect(result).rejects.toMatchObject({ code: 'ORGANIZATION_SLUG_TAKEN' });
       expect(repo.create).not.toHaveBeenCalled();
     });
   });
@@ -101,7 +107,7 @@ describe('OrganizationsService', () => {
       const a = fixture({ id: 'org_aaaaaaaaaaaaaaaaaaaaaaaa' });
       const b = fixture({ id: 'org_bbbbbbbbbbbbbbbbbbbbbbbb', slug: 'beta' });
       vi.mocked(repo.findById).mockResolvedValue(a);
-      vi.mocked(repo.findBySlug).mockResolvedValue(b); // someone else owns the slug
+      vi.mocked(repo.findBySlug).mockResolvedValue(b);
 
       await expect(service.update(a.id, { slug: 'beta' })).rejects.toMatchObject({
         code: 'ORGANIZATION_SLUG_TAKEN',
