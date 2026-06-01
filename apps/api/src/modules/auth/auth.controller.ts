@@ -1,0 +1,180 @@
+/**
+ * AuthController.
+ *
+ * Thin HTTP layer:
+ * - Validates inputs with @ZodBody / @ZodQuery / @ZodParam (single source of
+ * truth: @app/contracts).
+ * - Calls the service. Does NOT contain business logic.
+ * - Lets DomainError propagate; the global HttpExceptionFilter takes care
+ * of mapping to the envelope.
+ *
+ * Response shapes intentionally match the contract envelopes in
+ * docs/conventions/api-design.md.
+ */
+import {
+  loginWithCredentialsSchema,
+  type LoginWithCredentialsBody,
+  tokenRefreshSchema,
+  type TokenRefreshBody,
+  individualSignupBodySchema,
+  type IndividualSignupBody,
+  testEmailSchema,
+  type TestEmailSchema,
+} from '@app/contracts';
+
+import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
+import { ZodBody } from '../../common/validation/zod.decorators.js';
+import { AuthService } from './auth.service.js';
+import type { NormalizedProfile } from './models/auth-registration.interface.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { EmailService } from '../email/email.service.js';
+
+interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+@ApiTags('auth')
+@Controller({ path: 'auth', version: '1' })
+export class AuthController {
+  constructor(
+    private readonly service: AuthService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  // --------------- RAW EMAIL SIGNUP --------------- //
+
+  @Post('signup/individual')
+  @ApiZodBody(individualSignupBodySchema, 'Creates a new individual user account.') //  100% Automated & In Sync
+  async signupIndividual(@ZodBody(individualSignupBodySchema) body: IndividualSignupBody) {
+    // body.email is safely lowercased/trimmed via common contract
+    return this.service.registerWithEmailandPassword(body);
+  }
+
+  //@Post('signup/organization')
+  //async signupOrganization(@ZodBody(organizationSignupBodySchema) body: OrganizationSignupBody) {
+  // body.organization properties match exact schema layout rules
+  //return this.service.registerOrganization(body);
+  //}
+
+  // --------------- RAW EMAIL LOGIN --------------- //
+
+  @Post('login')
+  async loginWithEmailAndPassword(
+    @ZodBody(loginWithCredentialsSchema) body: LoginWithCredentialsBody,
+  ) {
+    // Input parameters are guaranteed clean and formatted by Zod mapping here
+    return this.service.loginWithEmailAndPassword(body);
+  }
+
+  // --------------- GOOGLE OAUTH FLOWS --------------- //
+
+  // Endpoint to trigger Google OAuth flow; Passport strategy handles the rest
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiResponse({ status: 200, description: 'Initiates Google OAuth flow.' })
+  async googleAuth(@Req() _req: unknown): Promise<void> {
+    // Triggers the initial OAuth redirect handshake handled by Passport Google Strategy
+  }
+
+  // Callback endpoint that Google redirects to after user consents; Passport strategy processes the response and populates req.user
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req: any, @Res() res: any): Promise<void> {
+    try {
+      // req.user is populated by Passport safely regardless of the underlying driver
+      const profile = req.user as NormalizedProfile;
+      const { tokens, isNewUser } = await this.service.registerOrLoginWithProvider(profile);
+
+      // BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
+      res.cookie('refresh_token', tokens.refreshToken, {
+        httpOnly: true, // Prevents JavaScript/XSS extraction
+        secure: process.env.NODE_ENV === 'production', // Only sent over HTTPS in production
+        sameSite: 'strict', // Mitigates CSRF attacks
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days matching DB session window
+        path: '/api/v1/auth/refresh', // Sent only to the token rotation route
+      });
+
+      const baseUrl = isNewUser
+        ? process.env.FRONTEND_ONBOARDING_URL
+        : process.env.FRONTEND_DASHBOARD_URL;
+
+      const finalRedirectUrl = `${baseUrl}?accessToken=${tokens.accessToken}`;
+
+      //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
+      // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
+      return res.redirect(finalRedirectUrl, 302);
+    } catch (error: any) {
+      // Direct print to screen if something else breaks inside the service loop
+      return res.status(500).send({
+        error: 'Redirect Loop Exception',
+        message: error?.message || String(error),
+      });
+    }
+  }
+
+  // --------------- SESSION LIFECYCLE MANAGEMENT --------------- //
+  @Post('logout')
+  @UseGuards(JwtAuthGuard) // Must be logged in to log out
+  @ApiBearerAuth() // Indicates this endpoint requires a bearer token for Swagger documentation
+  @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
+  async logout(@Req() req: any, @Res() res: any): Promise<void> {
+    try {
+      // Extract the session ID attached by JwtStrategy
+      const sessionId = req.user.sessionId;
+
+      if (!sessionId) {
+        throw new Error('No active session token identifier found in request.');
+      }
+
+      // 1. Terminate the database session record
+      await this.service.clearSession(sessionId);
+
+      // 2. If you are using HTTP-only cookies for refresh tokens, clear them here:
+      // res.clearCookie('refreshToken', { ...cookieOptions });
+
+      // 3. Fastify reply confirmation
+      return res.status(200).send({
+        success: true,
+        message: 'Logged out successfully. Token session has been revoked.',
+        sessionId: sessionId,
+      });
+    } catch (error: any) {
+      return res.status(400).send({
+        error: 'Logout Error',
+        message: error?.message || String(error),
+      });
+    }
+  }
+
+  // Endpoint for clients to rotate their session refresh tokens
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiZodBody(tokenRefreshSchema, 'Rotates session refresh token(s).') //  100% Automated & In Sync
+  async refreshSession(
+    @ZodBody(tokenRefreshSchema) body: TokenRefreshBody,
+  ): Promise<{ data: TokenResponse }> {
+    return { data: await this.service.refreshSession(body.refreshToken) };
+  }
+
+  @Post('test-verification-email')
+  @ApiZodBody(testEmailSchema, 'Sends a test verification email.')
+  async testEmailVerification(
+    @ZodBody(testEmailSchema) body: TestEmailSchema,
+  ): Promise<{ success: boolean; message: string }> {
+    // body is fully validated, stripped of unknown properties, and type-safe!
+    const { email } = body;
+    const dummyCode = '882941';
+
+    await this.emailService.sendVerificationCode(email, dummyCode);
+
+    return {
+      success: true,
+      message: `A test verification email was successfully sent to ${email}`,
+    };
+  }
+}
