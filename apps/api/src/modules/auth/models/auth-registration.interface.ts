@@ -1,5 +1,4 @@
 import { IdentityProvider } from '@prisma/client';
-
 export interface CreateIndividualInput {
   email: string;
   passwordHash: string;
@@ -27,21 +26,6 @@ export interface NormalizedProfile {
   avatarUrl?: string | null;
 }
 
-export interface CreateUserIdentityAndMembershipData {
-  // User creation fields
-  email: string;
-  fullName: string | null;
-  avatarUrl?: string | null;
-
-  // Identity provider fields
-  provider: IdentityProvider; // e.g., 'GOOGLE'
-  providerId: string; // The external Google subject ID
-  passwordHash?: string;
-
-  // Optional organization link
-  organizationId: string | null;
-}
-
 export interface SessionCreationData {
   userId: string;
   tokenHash: string;
@@ -56,6 +40,7 @@ export type IdentityResolution =
   | {
       type: 'EXISTING_IDENTITY';
       userId: string;
+      provider: IdentityProvider;
     }
   | {
       type: 'EXISTING_USER_NO_IDENTITY';
@@ -65,7 +50,7 @@ export type IdentityResolution =
   | {
       type: 'NEW_USER';
       email: string;
-      provider: string;
+      provider: IdentityProvider;
       providerId: string;
       domain: string | null;
     };

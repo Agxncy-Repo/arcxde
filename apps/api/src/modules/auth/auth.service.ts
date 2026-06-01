@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { IndividualSignupBody, LoginWithCredentialsBody } from '@app/contracts';
 import { IdentityResolver } from './identity/identity.resolver.js';
+import { IdentityProvider } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -64,31 +65,67 @@ export class AuthService {
    * Registers a brand-new individual user using their email and password.
    * Leverages progressive onboarding by keeping profile data optional initially.
    */
-  async registerWithEmailandPassword(
-    body: IndividualSignupBody,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+    async registerWithEmailandPassword(body: IndividualSignupBody,): Promise<{ accessToken: string; refreshToken: string }> {
     const { email, password, firstName, lastName } = body;
 
-    // 1. Check if an identity or account already exists with this email
-    const existingUser = await this.authRepository.findUserByEmail(email);
-    if (existingUser) {
-      // Throwing a explicit exception here since this is a dedicated, active signup submission form
-      throw new BadRequestException('An account with this email already exists.');
+    // 1. Normalize signup into identity resolver format
+    const normalizedProfile = this.mapSignupToNormalizedProfile(body, 'EMAIL_PASSWORD');
+
+    // 2. Evaluate existing identity graph state
+    const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
+
+    // 3. Block only true credential duplication
+    if (
+      identityResolution.type === 'EXISTING_IDENTITY' &&
+      identityResolution.provider === 'EMAIL_PASSWORD'
+    ) {
+      throw new BadRequestException(
+        'An account with this email already exists. Please sign in instead.',
+      );
     }
 
-    // 2. Securely hash the plain-text password using Argon2id
+    // 4. Hash password securely
     const passwordHash = await argon2.hash(password);
 
-    // 3. Persist the new records inside a database transaction layer
-    const newUser = await this.authRepository.createIndividualAccount({
-      email,
-      passwordHash,
-      firstName: firstName || null, // Gracefully fallback to null for progressive onboarding
-      lastName: lastName || null,
-    });
+    let targetUserId: string;
 
-    // This creates the database session rows, hashes the refresh token, and returns both strings.
-    return this.createAuthenticatedSession(newUser.id);
+    // 5. Cross-provider account stitching
+    if (identityResolution.type === 'EXISTING_USER_NO_IDENTITY') {
+      targetUserId = identityResolution.userId;
+
+      await this.authRepository.linkCredentialsIdentityToExistingUser({
+        userId: targetUserId,
+        provider: 'EMAIL_PASSWORD',
+        providerId: email,
+        passwordHash,
+        providerEmail: email,
+      });
+    } else {
+      // 6. New user creation path
+      const newUser = await this.authRepository.createIndividualAccount({
+        email,
+        passwordHash,
+        firstName: firstName ?? null,
+        lastName: lastName ?? null,
+      });
+
+      targetUserId = newUser.id;
+    }
+
+    // 7. Create session + tokens
+    return this.createAuthenticatedSession(targetUserId);
+  }
+
+  private mapSignupToNormalizedProfile(body: IndividualSignupBody, provider: IdentityProvider): NormalizedProfile {
+    return {
+      provider: provider, 
+      providerId: body.email, // Using email as the stable unique provider ID for password accounts
+      email: body.email,
+      emailVerified: false, // We can implement email verification later; default to false for now
+      fullName: body.firstName && body.lastName 
+        ? `${body.firstName.trim()} ${body.lastName.trim()}` 
+        : body.firstName || body.lastName || null,
+    };
   }
 
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use

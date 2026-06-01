@@ -63,6 +63,7 @@ export class AuthController {
   // --------------- RAW EMAIL LOGIN --------------- //
 
   @Post('login')
+  @ApiZodBody(loginWithCredentialsSchema, 'Authenticates a user with email and password.') //  100% Automated & In Sync
   async loginWithEmailAndPassword(
     @ZodBody(loginWithCredentialsSchema) body: LoginWithCredentialsBody,
   ) {
