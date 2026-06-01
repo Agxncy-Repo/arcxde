@@ -22,6 +22,7 @@ export class IdentityResolver {
     if (identity) {
       return {
         type: 'EXISTING_IDENTITY',
+        provider: profile.provider,
         userId: identity.userId,
       };
     }
