@@ -13,7 +13,9 @@ import { AppLoggerModule } from './common/logger/app-logger.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
+import { EmailModule } from './modules/email/email.module.js';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { PrismaModule } from './modules/prisma/prisma.module.js';
     HealthModule,
     OnboardingModule,
     OrganizationsModule,
+    AuthModule,
+    EmailModule,
   ],
 })
 export class AppModule {}

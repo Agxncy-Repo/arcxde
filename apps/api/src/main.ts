@@ -28,6 +28,22 @@ async function bootstrap(): Promise<void> {
   });
   registerRequestIdHook(fastify.getInstance());
 
+  // ---- Passport-Fastify Compatibility Hook ----
+  // This shims Express-style methods onto Fastify's response lifecycle
+  // so that legacy Passport strategies can safely execute 302 redirects.
+  fastify.getInstance().addHook('onRequest', (req: any, res: any, done: any) => {
+    res.setHeader = (key: string, value: any) => {
+      res.raw.setHeader(key, value);
+      return res;
+    };
+    res.end = (data?: any) => {
+      res.raw.end(data);
+      return res;
+    };
+    req.res = res;
+    done();
+  });
+
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastify, {
     bufferLogs: true,
   });

@@ -17,7 +17,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+   url      = env("DATABASE_URL")
 }
 
 // -----------------------------------------------------------------------------
@@ -40,7 +40,7 @@ model Organization {
   payments       Payment[]
   partnerApis    PartnerApi[]
   feeds          Feed[]
-
+  domains        OrganizationDomain[]
   @@index([createdAt])
   @@map("organizations")
 }
@@ -55,15 +55,35 @@ enum OrganizationPlan {
 }
 
 // -----------------------------------------------------------------------------
+// List of Secondary Domains Associated with particular Organizations
+// -----------------------------------------------------------------------------
+model OrganizationDomain {
+  id             String   @id @default(cuid())
+
+  organizationId String   @map("organization_id")
+  domain         String   @unique
+
+  verified       Boolean  @default(false)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("organization_domains")
+}
+
+// -----------------------------------------------------------------------------
 // Users — global, not scoped to an organization
 // -----------------------------------------------------------------------------
 model User {
-  id            String    @id @default(dbgenerated("'usr_' || gen_random_uuid()::text"))
+  id            String    @id @default(dbgenerated("'usr_' || gen_random_uuid()::text"))  
   email         String    @unique @db.VarChar(254)
-  emailVerified DateTime? @map("email_verified") @db.Timestamptz(6)
-  // Argon2id hash; null only for SSO-only users
-  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  emailVerified  Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
   fullName      String?   @map("full_name") @db.VarChar(100)
+  avatarUrl     String?   @map("avatar_url") @db.VarChar(255)
   // null until MFA enrolled
   mfaSecret     String?   @map("mfa_secret") @db.VarChar(255)
   // Last successful sign-in, for security review and inactivity checks
@@ -71,6 +91,7 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  identities         Identity[]
   memberships        Membership[]
   teamMembers        TeamMember[]
   oauthConnections   OAuthConnection[]
@@ -96,6 +117,60 @@ model User {
   @@map("users")
 }
 
+
+// -----------------------------------------------------------------------------
+// Identity -
+// Authentication providers linked to a user account.
+//
+// This table allows a single user to authenticate through multiple providers
+// without creating duplicate user records. Examples:
+// - EMAIL_PASSWORD
+// - GOOGLE
+// - APPLE
+// - GITHUB
+// - Enterprise SSO (SAML / OIDC)
+//
+// Multiple identities may point to the same user.
+// -----------------------------------------------------------------------------
+model Identity {
+  id                String           @id @default(dbgenerated("'iden_' ||gen_random_uuid()::text")) 
+  userId            String           @map("user_id") @db.VarChar(255)
+  provider          IdentityProvider 
+  providerId        String    // Stable unique ID returned by the auth provider. Used to link external identities to internal users.
+  passwordHash      String?   // Hashed password (only used for EMAIL_PASSWORD provider; null for OAuth/SSO identities)
+  providerEmail     String?
+
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+enum IdentityProvider {
+  EMAIL_PASSWORD
+  GOOGLE
+  APPLE
+  GITHUB
+  MICROSOFT
+  OKTA
+  SAML
+}
+
+model Session {
+  id         String   @id @default(dbgenerated("'ses_' || gen_random_uuid()::text")) 
+  tokenHash  String   @unique // Hashed token storage to mitigate database leak vulnerabilities
+  userId     String  @map("user_id")
+  expiresAt  DateTime @default(now()) @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
 // -----------------------------------------------------------------------------
 // Onboarding Questions & User Responses
 // -----------------------------------------------------------------------------
@@ -287,24 +362,6 @@ enum OAuthProvider {
   @@map("oauth_provider")
 }
 
-// -----------------------------------------------------------------------------
-// Sessions
-// -----------------------------------------------------------------------------
-model Session {
-  id        String   @id @default(dbgenerated("'sess_' || gen_random_uuid()::text"))
-  userId    String   @map("user_id")
-  token     String   @unique @db.VarChar(255)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
-  userAgent String?  @map("user_agent") @db.Text
-  ipAddress String?  @map("ip_address") @db.VarChar(45)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([expiresAt])
-  @@index([userId])
-  @@map("sessions")
-}
 
 // -----------------------------------------------------------------------------
 // Course Catalog & Learning Content
