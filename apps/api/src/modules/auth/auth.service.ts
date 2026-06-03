@@ -7,7 +7,6 @@ import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { IndividualSignupBody, LoginWithCredentialsBody } from '@app/contracts';
 import { IdentityResolver } from './identity/identity.resolver.js';
-import { IdentityProvider } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -57,19 +56,30 @@ export class AuthService {
     const tokens = await this.createAuthenticatedSession(resolution.userId);
 
     return {
-      tokens,
-      userId: resolution.userId,
+      user: { id: resolution.userId, email },
+      ...tokens,
     };
   }
   /**
-   * Registers a brand-new individual user using their email and password.
+   * Registers a brand-new individual user using their email (passwordless).
    * Leverages progressive onboarding by keeping profile data optional initially.
    */
-    async registerWithEmailandPassword(body: IndividualSignupBody,): Promise<{ accessToken: string; refreshToken: string }> {
-    const { email, password, firstName, lastName } = body;
+  async registerWithEmailandPassword(
+    body: IndividualSignupBody,
+  ): Promise<{ user: { id: string; email: string }; accessToken: string; refreshToken: string }> {
+    const { email, firstName, lastName } = body;
 
-    // 1. Normalize signup into identity resolver format
-    const normalizedProfile = this.mapSignupToNormalizedProfile(body, 'EMAIL_PASSWORD');
+    // 1. Normalize signup into identity resolver format (no password provider)
+    const normalizedProfile = {
+      provider: 'EMAIL_PASSWORD' as const,
+      providerId: email,
+      email,
+      emailVerified: false,
+      fullName:
+        (firstName || '') && (lastName || '')
+          ? `${firstName?.trim() || ''} ${lastName?.trim() || ''}`.trim()
+          : firstName?.trim() || lastName?.trim() || null,
+    };
 
     // 2. Evaluate existing identity graph state
     const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
@@ -84,12 +94,9 @@ export class AuthService {
       );
     }
 
-    // 4. Hash password securely
-    const passwordHash = await argon2.hash(password);
-
     let targetUserId: string;
 
-    // 5. Cross-provider account stitching
+    // 4. Cross-provider account stitching
     if (identityResolution.type === 'EXISTING_USER_NO_IDENTITY') {
       targetUserId = identityResolution.userId;
 
@@ -97,14 +104,14 @@ export class AuthService {
         userId: targetUserId,
         provider: 'EMAIL_PASSWORD',
         providerId: email,
-        passwordHash,
+        passwordHash: null, // Passwordless
         providerEmail: email,
       });
     } else {
-      // 6. New user creation path
+      // 5. New user creation path
       const newUser = await this.authRepository.createIndividualAccount({
         email,
-        passwordHash,
+        passwordHash: null, // Passwordless
         firstName: firstName ?? null,
         lastName: lastName ?? null,
       });
@@ -112,19 +119,11 @@ export class AuthService {
       targetUserId = newUser.id;
     }
 
-    // 7. Create session + tokens
-    return this.createAuthenticatedSession(targetUserId);
-  }
-
-  private mapSignupToNormalizedProfile(body: IndividualSignupBody, provider: IdentityProvider): NormalizedProfile {
+    // 6. Create session + tokens
+    const tokens = await this.createAuthenticatedSession(targetUserId);
     return {
-      provider: provider, 
-      providerId: body.email, // Using email as the stable unique provider ID for password accounts
-      email: body.email,
-      emailVerified: false, // We can implement email verification later; default to false for now
-      fullName: body.firstName && body.lastName 
-        ? `${body.firstName.trim()} ${body.lastName.trim()}` 
-        : body.firstName || body.lastName || null,
+      user: { id: targetUserId, email },
+      ...tokens,
     };
   }
 

@@ -9,6 +9,7 @@
 import type { Metadata } from 'next';
 
 import { fontVariables } from '@/lib/fonts';
+import { ReactQueryProvider } from '@/lib/react-query-provider';
 
 import './globals.css';
 
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fontVariables} antialiased bg-background bg-grain text-foreground`}>
-        {children}
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   );

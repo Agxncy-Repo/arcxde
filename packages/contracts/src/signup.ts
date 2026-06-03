@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { emailSchema } from './common.js';
 import { createOrganizationBodySchema } from './organizations.js';
-import { passwordSchema } from './auth.js';
 
 // 1. Live Domain Verification
 export const verifyDomainQuerySchema = z.object({
@@ -17,7 +16,6 @@ export type VerifyDomainResponse = z.infer<typeof verifyDomainResponseSchema>;
 // 2. Individual Signup
 export const individualSignupBodySchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
   firstName: z.string().trim().optional(),
   lastName: z.string().trim().optional(),
 });
