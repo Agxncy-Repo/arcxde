@@ -1,7 +1,7 @@
 import { IdentityProvider } from '@prisma/client';
 export interface CreateIndividualInput {
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
   firstName: string | null;
   lastName: string | null;
 }

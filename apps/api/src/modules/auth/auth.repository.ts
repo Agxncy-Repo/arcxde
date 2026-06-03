@@ -141,22 +141,22 @@ export class AuthRepository {
 
   // 4. Attach an additional identification mechanism to an existing core User profile (Account Linking)
   async linkCredentialsIdentityToExistingUser(params: {
-      userId: string;
-      provider: 'EMAIL_PASSWORD';
-      providerId: string;
-      passwordHash: string;
-      providerEmail: string;
-    }): Promise<Identity> {
-      return this.prisma.identity.create({
-        data: {
-          userId: params.userId,
-          provider: params.provider,
-          providerId: params.providerId,
-          passwordHash: params.passwordHash,
-          providerEmail: params.providerEmail,
-        },
-      });
-    }
+    userId: string;
+    provider: 'EMAIL_PASSWORD';
+    providerId: string;
+    passwordHash: string | null;
+    providerEmail: string;
+  }): Promise<Identity> {
+    return this.prisma.identity.create({
+      data: {
+        userId: params.userId,
+        provider: params.provider,
+        providerId: params.providerId,
+        passwordHash: params.passwordHash,
+        providerEmail: params.providerEmail,
+      },
+    });
+  }
 
   // 5. Explicit email verification flag updates
   async updateUserEmailVerification(userId: string, isVerified: boolean): Promise<User> {

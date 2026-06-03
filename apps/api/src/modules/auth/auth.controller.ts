@@ -51,7 +51,8 @@ export class AuthController {
   @ApiZodBody(individualSignupBodySchema, 'Creates a new individual user account.') //  100% Automated & In Sync
   async signupIndividual(@ZodBody(individualSignupBodySchema) body: IndividualSignupBody) {
     // body.email is safely lowercased/trimmed via common contract
-    return this.service.registerWithEmailandPassword(body);
+    const response = await this.service.registerWithEmailandPassword(body);
+    return { data: response };
   }
 
   //@Post('signup/organization')
@@ -68,7 +69,8 @@ export class AuthController {
     @ZodBody(loginWithCredentialsSchema) body: LoginWithCredentialsBody,
   ) {
     // Input parameters are guaranteed clean and formatted by Zod mapping here
-    return this.service.loginWithEmailAndPassword(body);
+    const response = await this.service.loginWithEmailAndPassword(body);
+    return { data: response };
   }
 
   // --------------- GOOGLE OAUTH FLOWS --------------- //
