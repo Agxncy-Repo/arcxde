@@ -127,9 +127,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Typography — these are mapped to the next/font CSS variables set in layout.tsx */
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  /* Typography — Suisse Int'l is the primary font for the design system */
+  --font-sans: "Suisse Int'l", system-ui, -apple-system, sans-serif;
+  --font-serif: "Suisse Int'l", Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
