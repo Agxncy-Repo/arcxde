@@ -7,6 +7,8 @@ import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { IndividualSignupBody, LoginWithCredentialsBody } from '@app/contracts';
 import { IdentityResolver } from './identity/identity.resolver.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -129,16 +131,21 @@ export class AuthService {
 
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use
   async registerOrLoginWithProvider(profile: NormalizedProfile) {
+    var user = null;
     // 1. Attempt to resolve the incoming profile to an existing user identity or account
     const identityResult = await this.resolveAccount(profile);
 
     // 2. With a resolved user context, generate a new authenticated session with token rotation
     const tokens = await this.createAuthenticatedSession(identityResult.userId);
 
+    if (!identityResult.isNewUser) {
+      user = await this.authRepository.findUserByEmail(profile.email);
+    }
     // 3. Return the generated tokens along with a flag indicating if this is a new user for frontend onboarding flows
     return {
       tokens,
       isNewUser: identityResult.isNewUser,
+      user,
     };
   }
 
@@ -191,7 +198,7 @@ export class AuthService {
   }
 
   // Method to create a new authenticated session for a user, including cleanup of expired sessions and secure token generation with hashing for storage
-  private async createAuthenticatedSession(
+  public async createAuthenticatedSession(
     userId: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     await this.authRepository.deleteExpiredSessions(userId);
@@ -209,6 +216,46 @@ export class AuthService {
     await this.authRepository.updateSessionHash(sessionId, tokenHash);
 
     return tokens;
+  }
+  /**
+   * 💡 NEW METHOD: Transaction-aware session manager
+   * Accepts a generic Prisma client or a localized Transaction client ('tx')
+   */
+  async createAuthenticatedSessionWithTx(
+    userId: string,
+    dbClient: Prisma.TransactionClient | PrismaService, // Accepts either context safely
+  ) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(
+        { sub: userId },
+        {
+          expiresIn: '15m',
+          secret: process.env.JWT_ACCESS_SECRET || 'fallback_development_secret_access_key',
+        },
+      ),
+      this.jwtService.signAsync(
+        { sub: userId },
+        {
+          expiresIn: '7d',
+          secret: process.env.JWT_REFRESH_SECRET || 'fallback_development_secret_refresh_key',
+        },
+      ),
+    ]);
+
+    // 2. 💡 CRITICAL: Save the session using 'dbClient', NOT 'this.prisma'
+    // This links the session creation into the parent transaction rollback block!
+    await dbClient.session.create({
+      data: {
+        userId,
+        tokenHash: refreshToken, // Store the raw token hash directly since this method is only called internally after generation
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days window
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   // --- REFRESH TOKEN ROTATION ENGINE ---

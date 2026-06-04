@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SlantEgg } from '@/components/slant-egg';
-import { useSignupIndividual } from '@/lib/hooks/useAuth';
+import { useGoogleAuth, useSendVerificationEmail, useVerifySignupToken } from '@/lib/hooks/useAuth';
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 
@@ -30,22 +30,46 @@ const GoogleLogo = () => (
 );
 
 export default function IndividualSignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const { mutate: signup, isPending, error } = useSignupIndividual();
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [verificationToken, setVerificationToken] = useState('');
 
-  const handleContinue = () => {
-    signup(
+  const { redirectToGoogle, isRedirecting } = useGoogleAuth();
+  const sendVerificationEmailMutation = useSendVerificationEmail();
+  const verifyTokenMutation = useVerifySignupToken();
+
+  // Action 1: Handle Email Submission
+  const handleSendEmail = () => {
+    sendVerificationEmailMutation.mutate(
       { email },
       {
         onSuccess: () => {
-          setSubmitted(true);
+          setStep('code'); // Clean page change to the code input screen
         },
       },
     );
   };
 
-  if (submitted) {
+  // Action 2: Handle Code Verification Submission
+  const handleVerifyToken = () => {
+    verifyTokenMutation.mutate(
+      { token: verificationToken },
+      {
+        onSuccess: (response) => {
+          // Save the secure token returned from the backend verification step
+          const token = response.registrationToken;
+
+          // Redirect them to the final profile/password creation page
+          // Passing the token securely via query params so the next page can use it
+          router.push(`/signup/finalize?token=${token}`);
+        },
+      },
+    );
+  };
+
+  if (step === 'code') {
     return (
       <div className="min-h-screen bg-[#222] overflow-hidden flex">
         {/* ── LEFT: branding ─────────────────────────────── */}
@@ -107,7 +131,7 @@ export default function IndividualSignupPage() {
           >
             Didn&apos;t receive the email? Check your spam folder or{' '}
             <button
-              onClick={() => setSubmitted(false)}
+              onClick={() => setStep('email')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -148,6 +172,7 @@ export default function IndividualSignupPage() {
       {/* ── RIGHT: form ────────────────────────────────── */}
       <div className="flex flex-1 flex-col justify-center px-16 py-16">
         {/* Back arrow — in flow, above heading */}
+
         <Link
           href="/signup"
           style={{
@@ -194,7 +219,8 @@ export default function IndividualSignupPage() {
 
         {/* Google button — height 54, padding top/bottom 15px, left/right 47.5px */}
         <button
-          onClick={() => console.log('google')}
+          onClick={redirectToGoogle}
+          disabled={isRedirecting}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -223,7 +249,7 @@ export default function IndividualSignupPage() {
               color: 'rgba(0,0,0,0.54)',
             }}
           >
-            Sign Up with Google
+            {isRedirecting ? 'Connecting...' : 'Sign Up with Google'}
           </span>
         </button>
 
@@ -245,7 +271,7 @@ export default function IndividualSignupPage() {
           <div style={{ flex: 1, borderTop: '1px solid #626262' }} />
         </div>
 
-        {/* Email input */}
+        {/* Email input wrapper */}
         <div style={{ position: 'relative', width: 377, height: 71, marginBottom: 20 }}>
           <div
             style={{
@@ -260,7 +286,7 @@ export default function IndividualSignupPage() {
             placeholder="work email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={isPending}
+            disabled={sendVerificationEmailMutation.isPending}
             style={{
               position: 'absolute',
               top: 27,
@@ -272,13 +298,13 @@ export default function IndividualSignupPage() {
               fontSize: 18,
               fontWeight: 300,
               lineHeight: '100%',
-              color: '#6b6b6b',
+              color: '#fff', // Changed to white so text is visible when typing
               width: 'calc(100% - 54px)',
             }}
           />
         </div>
 
-        {error && (
+        {sendVerificationEmailMutation.isError && (
           <p
             style={{
               fontFamily: FONT,
@@ -289,31 +315,47 @@ export default function IndividualSignupPage() {
               marginBottom: 32,
             }}
           >
-            {error.message || 'Signup failed. Please try again.'}
+            {sendVerificationEmailMutation.error?.message ||
+              'Failed to send verification email. Please try again.'}
+          </p>
+        )}
+
+        {verifyTokenMutation.isError && (
+          <p
+            style={{
+              fontFamily: FONT,
+              fontSize: 14,
+              fontWeight: 300,
+              lineHeight: '100%',
+              color: '#ff6b6b',
+              marginBottom: 32,
+            }}
+          >
+            {verifyTokenMutation.error?.message || 'Verification failed. Please try again.'}
           </p>
         )}
 
         {/* Continue button */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', width: 377, marginBottom: 48 }}>
           <button
-            disabled={!email || isPending}
-            onClick={handleContinue}
+            disabled={!email || sendVerificationEmailMutation.isPending}
+            onClick={handleSendEmail}
             style={{
               width: 166,
               height: 38,
               borderRadius: 20,
               border: '1px solid #6b6b6b',
               background: 'transparent',
-              color: '#6b6b6b',
+              color: email && !sendVerificationEmailMutation.isPending ? '#fff' : '#6b6b6b', // Text turns white when active
               fontFamily: FONT,
               fontSize: 18,
               fontWeight: 300,
               lineHeight: '100%',
-              cursor: email && !isPending ? 'pointer' : 'default',
-              opacity: email && !isPending ? 1 : 0.5,
+              cursor: email && !sendVerificationEmailMutation.isPending ? 'pointer' : 'default',
+              opacity: email && !sendVerificationEmailMutation.isPending ? 1 : 0.5,
             }}
           >
-            {isPending ? 'signing up...' : 'continue'}
+            {sendVerificationEmailMutation.isPending ? 'sending...' : 'continue'}
           </button>
         </div>
 

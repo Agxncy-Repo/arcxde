@@ -27,7 +27,17 @@ function OnboardingQuestionsContent() {
 
   const userId = useUserStore((s) => s.userId);
   const selectedRole = useUserStore((s) => s.selectedRole);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
   const currentRole = role || selectedRole;
+
+  // Wait for Zustand rehydrate before rendering content that needs persisted state
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-[#222] flex items-center justify-center">
+        <p style={{ color: '#aaa', fontSize: 16 }}>Loading...</p>
+      </div>
+    );
+  }
 
   const {
     data: questionsResponse,

@@ -22,20 +22,28 @@ export class EmailService {
   }
 
   /**
-   * Dispatches a secure 6-digit verification code to a user's inbox during registration.
+   * Dispatches a verification email containing a unique link to the specified recipient.
+   * The link is designed to be time-sensitive and single-use, ensuring secure account verification.
+   *
    */
-  async sendVerificationCode(to: string, code: string): Promise<void> {
-    const subject = `${code} is your verification code`;
+  async sendVerificationLink(to: string, url: string): Promise<void> {
+    const subject = `Verify your email address`;
 
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; max-width: 480px; margin: 0 auto; background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 8px;">
         <h2 style="color: #1a1a1a; font-size: 20px; font-weight: 600; margin-bottom: 16px;">Verify your email address</h2>
         <p style="color: #666666; font-size: 14px; line-height: 24px; margin-bottom: 24px;">
-          Thanks for signing up! Enter the following code on the registration page to verify your account. This code expires in 15 minutes.
+          Thanks for signing up! Click the verification button below to safely verify your account and continue your registration. This link will expire in 15 minutes.
         </p>
-        <div style="background-color: #f4f4f5; border-radius: 6px; padding: 16px; text-align: center; margin-bottom: 24px;">
-          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 32px; font-weight: 700; letter-spacing: 4px; color: #09090b;">${code}</span>
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${url}" target="_blank" style="display: inline-block; background-color: #09090b; color: #ffffff; font-size: 15px; font-weight: 500; text-decoration: none; padding: 12px 32px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            Verify Email
+          </a>
         </div>
+        <p style="color: #666666; font-size: 13px; line-height: 20px; margin-bottom: 24px; word-break: break-all;">
+          If the button above doesn't work, copy and paste this URL into your browser:<br />
+          <a href="${url}" style="color: #2563eb; text-decoration: underline;">${url}</a>
+        </p>
         <p style="color: #9ca3af; font-size: 12px; line-height: 20px; margin-top: 32px; border-top: 1px solid #e4e4e7; padding-top: 16px;">
           If you did not request this email, you can safely ignore it.
         </p>
@@ -55,7 +63,7 @@ export class EmailService {
         throw new InternalServerErrorException('Email delivery engine failed.');
       }
 
-      this.logger.log(`🎉 Verification code successfully dispatched to ${to} (ID: ${data?.id})`);
+      this.logger.log(`🎉 Verification link successfully dispatched to ${to} (ID: ${data?.id})`);
     } catch (err) {
       this.logger.error(`Unexpected error during email transmission to ${to}`, err);
       throw new InternalServerErrorException('Could not process authentication mailer pipeline.');

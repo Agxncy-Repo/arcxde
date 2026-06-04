@@ -84,6 +84,7 @@ model User {
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
   fullName      String?   @map("full_name") @db.VarChar(100)
   avatarUrl     String?   @map("avatar_url") @db.VarChar(255)
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
   // null until MFA enrolled
   mfaSecret     String?   @map("mfa_secret") @db.VarChar(255)
   // Last successful sign-in, for security review and inactivity checks
@@ -147,6 +148,7 @@ model Identity {
 
   @@unique([provider, providerId])
   @@index([userId])
+  @@map("identities")
 }
 
 enum IdentityProvider {
@@ -170,6 +172,35 @@ model Session {
 
   @@index([userId])
   @@index([tokenHash])
+  @@map("sessions")
+}
+
+// Verification tokens for email-based actions (signup, password reset, MFA)
+model VerificationToken{
+  id         String   @id @default(dbgenerated("'vt_' || gen_random_uuid()::text")) 
+  email      String   @map("user_id")
+  token      String   @unique // Plain token for lookup; hashed before storage
+  attempts   Int      @default(0) // Incremented on each failed verification attempt
+  attemptedAt DateTime? @map("attempted_at") @db.Timestamptz(6) // Last attempt timestamp
+  expiresAt  DateTime @default(now()) @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@map("verification_tokens")
+}
+
+// Separate table for email verification during signup, to keep it distinct from password resets and MFA codes
+model EmailVerificationSession{
+  id         String   @id @default(dbgenerated("'evs_' || gen_random_uuid()::text")) 
+  email      String   @map("email") @db.VarChar(254)
+  registrationToken String   @unique // Token used for verifying email during registration
+  verified   Boolean  @default(false) // Whether the email has been successfully verified
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6) // Timestamp of successful verification
+  expiresAt  DateTime @default(now()) @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@map("email_verification_sessions")
 }
 // -----------------------------------------------------------------------------
 // Onboarding Questions & User Responses

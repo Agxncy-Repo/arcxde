@@ -16,8 +16,6 @@ import {
   type LoginWithCredentialsBody,
   tokenRefreshSchema,
   type TokenRefreshBody,
-  individualSignupBodySchema,
-  type IndividualSignupBody,
   testEmailSchema,
   type TestEmailSchema,
 } from '@app/contracts';
@@ -30,30 +28,22 @@ import { ZodBody } from '../../common/validation/zod.decorators.js';
 import { AuthService } from './auth.service.js';
 import type { NormalizedProfile } from './models/auth-registration.interface.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { EmailService } from '../email/email.service.js';
+import { EmailVerificationService } from '../email/verification/email-verification.service.js';
 
 interface TokenResponse {
   accessToken: string;
   refreshToken: string;
 }
 
-@ApiTags('auth')
+@ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
     private readonly service: AuthService,
-    private readonly emailService: EmailService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   // --------------- RAW EMAIL SIGNUP --------------- //
-
-  @Post('signup/individual')
-  @ApiZodBody(individualSignupBodySchema, 'Creates a new individual user account.') //  100% Automated & In Sync
-  async signupIndividual(@ZodBody(individualSignupBodySchema) body: IndividualSignupBody) {
-    // body.email is safely lowercased/trimmed via common contract
-    const response = await this.service.registerWithEmailandPassword(body);
-    return { data: response };
-  }
 
   //@Post('signup/organization')
   //async signupOrganization(@ZodBody(organizationSignupBodySchema) body: OrganizationSignupBody) {
@@ -90,7 +80,7 @@ export class AuthController {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
       const profile = req.user as NormalizedProfile;
-      const { tokens, isNewUser } = await this.service.registerOrLoginWithProvider(profile);
+      const { tokens, isNewUser, user } = await this.service.registerOrLoginWithProvider(profile);
 
       // BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
       res.cookie('refresh_token', tokens.refreshToken, {
@@ -101,9 +91,10 @@ export class AuthController {
         path: '/api/v1/auth/refresh', // Sent only to the token rotation route
       });
 
-      const baseUrl = isNewUser
-        ? process.env.FRONTEND_ONBOARDING_URL
-        : process.env.FRONTEND_DASHBOARD_URL;
+      const baseUrl =
+        isNewUser || !user?.onboardingCompleted
+          ? process.env.FRONTEND_ONBOARDING_URL
+          : process.env.FRONTEND_DASHBOARD_URL;
 
       const finalRedirectUrl = `${baseUrl}?accessToken=${tokens.accessToken}`;
 
@@ -168,16 +159,16 @@ export class AuthController {
   @ApiZodBody(testEmailSchema, 'Sends a test verification email.')
   async testEmailVerification(
     @ZodBody(testEmailSchema) body: TestEmailSchema,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; registrationToken: string }> {
     // body is fully validated, stripped of unknown properties, and type-safe!
     const { email } = body;
-    const dummyCode = '882941';
 
-    await this.emailService.sendVerificationCode(email, dummyCode);
+    const result = await this.emailVerificationService.sendTestVerificationEmail(email);
 
     return {
       success: true,
       message: `A test verification email was successfully sent to ${email}`,
+      registrationToken: result.registrationToken,
     };
   }
 }

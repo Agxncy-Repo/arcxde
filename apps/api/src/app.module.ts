@@ -16,6 +16,8 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { EmailModule } from './modules/email/email.module.js';
+import { SignupModule } from './modules/signup/signup.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { EmailModule } from './modules/email/email.module.js';
     OrganizationsModule,
     AuthModule,
     EmailModule,
+    SignupModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
