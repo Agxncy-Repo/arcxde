@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { emailSchema } from './common.js';
 import { createOrganizationBodySchema } from './organizations.js';
-import { passwordSchema } from './auth.js';
 
 // ============================================================================
 // 1. Live Domain Verification
