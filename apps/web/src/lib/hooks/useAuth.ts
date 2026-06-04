@@ -5,17 +5,6 @@ import { useState } from 'react';
 import { FinalizeRegistrationDto } from '@app/contracts';
 import { useRouter } from 'next/navigation';
 
-interface SignupResponse {
-  data: {
-    user: {
-      id: string;
-      email: string;
-      fullName?: string;
-    };
-    accessToken: string;
-    refreshToken: string;
-  };
-}
 interface FinalizeSignupResponse {
   success: boolean;
   message: string;

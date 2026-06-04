@@ -17,10 +17,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@app/contracts": ["../../packages/contracts/src/index.ts"]
+      "@app/contracts": ["../../packages/contracts/dist/index.d.ts"]
     },
     "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.e2e-spec.ts", "**/*.test.ts", "test"]
+  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.e2e-spec.ts", "**/*.test.ts", "test"],
+  "references": [{ "path": "../../packages/contracts" }]
 }
