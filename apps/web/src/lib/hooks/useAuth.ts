@@ -83,11 +83,8 @@ export const useFinalizeSignup = () => {
         setError(null);
 
         // Resolve data layer safely based on what your API client wraps
-        const actualData =
-          (data as { data?: { user: { id: string }; accessToken: string } }).data &&
-          !(data as { user?: unknown }).user
-            ? (data as { data: { user: { id: string }; accessToken: string } }).data
-            : (data as { user: { id: string }; accessToken: string });
+        const raw = data as unknown as { data?: { user: { id: string }; accessToken: string }; user?: { id: string }; accessToken?: string };
+        const actualData = raw.data && !raw.user ? raw.data : raw as { user: { id: string }; accessToken: string };
         setUser(actualData.user.id, actualData.accessToken);
 
         // Redirect to the onboarding step after successful registration finalization
