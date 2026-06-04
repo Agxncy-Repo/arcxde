@@ -1,14 +1,15 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { useFinalizeSignup } from '../../../lib/hooks/useAuth'; // Adjust path to match your hooks directory
+import { useFinalizeSignup } from '../../../lib/hooks/useAuth';
 import { SlantEgg } from '@/components/slant-egg';
 import Link from 'next/link';
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 
-export default function FinalizeSignupPage() {
+function FinalizeSignupContent() {
   const searchParams = useSearchParams();
 
   // Grab the secure temporary session token directly out of the URL string
@@ -29,7 +30,7 @@ export default function FinalizeSignupPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-    clearFinalizeError(); // Reset any residual server errors from previous hits
+    clearFinalizeError();
 
     if (
       !form.firstName.trim() ||
@@ -40,18 +41,15 @@ export default function FinalizeSignupPage() {
       setLocalError('All fields are required. Please fill in all missing information.');
       return;
     }
-    // Local Guard Gate Checks
     if (!token) {
       setLocalError('Registration token missing. Please re-verify your email address link.');
       return;
     }
-
     if (form.password !== form.confirmPassword) {
       setLocalError('Passwords do not match.');
       return;
     }
 
-    // 4. Pass the payload directly to the hook trigger
     finalizeSignup({
       token,
       firstName: form.firstName,
@@ -61,7 +59,6 @@ export default function FinalizeSignupPage() {
     });
   };
 
-  // Compute the final display error prioritizing backend exceptions over client logic
   const activeDisplayError = finalizeError || localError;
 
   return (
@@ -234,5 +231,19 @@ export default function FinalizeSignupPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function FinalizeSignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#222] flex items-center justify-center">
+          <p style={{ fontFamily: "'Suisse Int\\'l', system-ui, sans-serif", color: 'white', fontSize: 18 }}>Loading...</p>
+        </div>
+      }
+    >
+      <FinalizeSignupContent />
+    </Suspense>
   );
 }
