@@ -1,0 +1,210 @@
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email.service';
+import * as crypto from 'crypto';
+
+@Injectable()
+export class EmailVerificationService {
+  // Configurable rate limit and attempt thresholds
+  private readonly maxVerificationAttempts = parseInt(
+    process.env.MAX_VERIFICATION_ATTEMPTS ?? '5',
+    10,
+  );
+  private readonly codeTTL = parseInt(process.env.MAX_VERIFICATION_CODE_TTL_MINUTES ?? '15', 10);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  // Initiates the email verification process by generating a unique token link and sending it to the user
+  async initiateEmailVerification(email: string): Promise<void> {
+    const formattedEmail = email.trim().toLowerCase();
+
+    // 1. Production Rate-Limit Check: Max links per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentLinksCount = await this.prisma.verificationToken.count({
+      where: {
+        email: formattedEmail,
+        createdAt: { gte: oneHourAgo },
+      },
+    });
+
+    if (recentLinksCount >= this.maxVerificationAttempts) {
+      throw new BadRequestException('Too many verification requests. Please try again in an hour.');
+    }
+
+    // 2. Generate a high-entropy cryptographically secure unique token string
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // 3. One active link strategy per user account (State Layer Transaction)
+    await this.prisma.$transaction([
+      this.prisma.verificationToken.deleteMany({ where: { email: formattedEmail } }),
+      this.prisma.verificationToken.create({
+        data: {
+          email: formattedEmail,
+          token,
+          attempts: 0, // Explicitly reset attempts on a new link generation
+          expiresAt: new Date(Date.now() + this.codeTTL * 60 * 1000),
+        },
+      }),
+    ]);
+
+    // 4. Construct the full redirect link pointing directly to your Next.js frontend route
+    const frontendUrl =
+      process.env.FRONTEND_VERIFY_URL || 'http://localhost:3000/signup/verification';
+    const verificationLink = `${frontendUrl}?token=${token}`;
+
+    // 5. Asynchronous Event Layer Dispatch (Out of database transaction)
+    await this.emailService.sendVerificationLink(formattedEmail, verificationLink);
+  }
+
+  // Verifies the secure URL token string and transitions the user to an active onboarding session
+  async verifyMagicLink(token: string): Promise<{ email: string; registrationToken: string }> {
+    // 1. Fetch the metadata directly via the unique secure token string
+    const record = await this.prisma.verificationToken.findUnique({
+      where: { token },
+    });
+
+    // Security Fallback: If token isn't found, it might be an invalid token or a brute-force guess attempt
+    if (!record) {
+      throw new BadRequestException('Invalid or expired verification link.');
+    }
+
+    // 2. Brute Force Protection Validation Checks
+    if (record.attempts >= this.maxVerificationAttempts) {
+      await this.prisma.verificationToken.delete({ where: { id: record.id } });
+      throw new BadRequestException(
+        'This verification link has been locked due to too many failed attempts. Please request a new link.',
+      );
+    }
+
+    // 3. Expiry Validation Gate
+    if (new Date() > record.expiresAt) {
+      await this.prisma.verificationToken.delete({ where: { id: record.id } });
+      throw new BadRequestException(
+        'This verification link has expired. Please request a new one.',
+      );
+    }
+
+    // 💡 If it gets past these checks, the link is valid!
+    const formattedEmail = record.email.trim().toLowerCase();
+    const sessionExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30-minute workspace onboarding window
+
+    // Generate the unique secure registration voucher token
+    const registrationToken = crypto.randomBytes(32).toString('hex');
+
+    try {
+      await this.prisma.$transaction([
+        // 1. Wipe out ANY existing registration sessions for this email address.
+        // This clears out stale unique tokens completely and guarantees no constraint conflicts.
+        this.prisma.emailVerificationSession.deleteMany({
+          where: { email: formattedEmail },
+        }),
+
+        // 2. Freshly create the verified onboarding session state.
+        // Since step 1 guaranteed a clean slate, this will NEVER throw a unique constraint error on email.
+        this.prisma.emailVerificationSession.create({
+          data: {
+            email: formattedEmail,
+            verified: true,
+            registrationToken: registrationToken,
+            expiresAt: sessionExpiry,
+          },
+        }),
+
+        // 3. Prune the consumed verification token immediately so it can never be re-played
+        this.prisma.verificationToken.delete({
+          where: { id: record.id },
+        }),
+      ]);
+
+      // Return the secure temporary registration token to the controller layer
+      return { email: formattedEmail, registrationToken };
+    } catch (transactionError: any) {
+      // If the token was valid but the database transaction choked due to a dead-lock or concurrency fail,
+      // log an attempt against the token to protect the route from endless spamming.
+      await this.prisma.verificationToken.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+
+      throw new BadRequestException('Verification processing failed. Please try again.');
+    }
+  }
+
+  // Helper method: if someone hits your validation with a bad token structure but you want to track attempts manually via an email fallback
+  async registerFailedAttempt(email: string): Promise<void> {
+    const formattedEmail = email.trim().toLowerCase();
+    await this.prisma.verificationToken.updateMany({
+      where: { email: formattedEmail },
+      data: { attempts: { increment: 1 } },
+    });
+  }
+
+  // Validates that the user has an active verified session for their email before allowing them to proceed with registration
+  async validateActiveSessionOrThrow(email: string): Promise<void> {
+    const formattedEmail = email.trim().toLowerCase();
+
+    const session = await this.prisma.emailVerificationSession.findFirst({
+      where: { email: formattedEmail },
+    });
+
+    if (!session || !session.verified || new Date() > session.expiresAt) {
+      throw new UnauthorizedException(
+        'Email verification required or onboarding session has expired.',
+      );
+    }
+  }
+
+  async consumeSession(email: string): Promise<void> {
+    await this.prisma.emailVerificationSession.deleteMany({
+      where: { email: email.trim().toLowerCase() },
+    });
+  }
+
+  /**
+   * 💡 Test runner method that handles the database transaction,
+   * link assembly, and hands it off to EmailService for dispatch.
+   */
+  async sendTestVerificationEmail(toEmail: string): Promise<{ registrationToken: string }> {
+    const formattedEmail = toEmail.trim().toLowerCase();
+
+    // 1. Generate token and TTL configuration bypassing hourly rate-limit counters
+    const registrationToken = crypto.randomBytes(32).toString('hex');
+    const codeTTL = this.codeTTL;
+
+    try {
+      // 2. Clear out old instances and save the test token atomically
+      await this.prisma.$transaction([
+        this.prisma.verificationToken.deleteMany({ where: { email: formattedEmail } }),
+        this.prisma.verificationToken.create({
+          data: {
+            email: formattedEmail,
+            token: registrationToken,
+            attempts: 0,
+            expiresAt: new Date(Date.now() + codeTTL * 60 * 1000),
+          },
+        }),
+      ]);
+
+      // 3. Assemble the test URL link destination
+      const frontendUrl =
+        process.env.FRONTEND_VERIFY_URL || 'http://localhost:3000/signup/verification';
+      const verificationLink = `${frontendUrl}?token=${registrationToken}`;
+
+      // 4. Dispatch via the base EmailService instance
+      await this.emailService.sendVerificationLink(formattedEmail, verificationLink);
+      return { registrationToken };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        `Failed to execute verification test pipeline inside verification service: ${error?.message || String(error)}`,
+      );
+    }
+  }
+}

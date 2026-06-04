@@ -14,6 +14,6 @@ import { IdentityResolver } from './identity/identity.resolver.js';
   imports: [PassportModule, JwtModule.register({}), EmailModule],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository, GoogleAdapter, JwtStrategy, IdentityResolver],
-  exports: [AuthService],
+  exports: [AuthService, IdentityResolver], // Exporting AuthService and IdentityResolver for use in other modules like SignupModule
 })
 export class AuthModule {}

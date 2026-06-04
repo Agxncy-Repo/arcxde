@@ -27,6 +27,7 @@ function OnboardingQuestionsContent() {
 
   const userId = useUserStore((s) => s.userId);
   const selectedRole = useUserStore((s) => s.selectedRole);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
   const currentRole = role || selectedRole;
 
   const {
@@ -43,6 +44,15 @@ function OnboardingQuestionsContent() {
   const questions = (questionsResponse?.data || []) as Question[];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // Wait for Zustand rehydrate before rendering content that needs persisted state
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-[#222] flex items-center justify-center">
+        <p style={{ color: '#aaa', fontSize: 16 }}>Loading...</p>
+      </div>
+    );
+  }
 
   const q = questions[currentIndex];
   const isLast = currentIndex === questions.length - 1;

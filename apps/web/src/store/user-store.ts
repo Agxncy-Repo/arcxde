@@ -1,15 +1,17 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface UserState {
   userId: string | null;
   token: string | null;
   selectedRole: string | null;
   onboardingCompleted: boolean;
+  hasHydrated: boolean;
   setUser: (userId: string, token: string) => void;
   setRole: (role: string) => void;
   completeOnboarding: () => void;
   logout: () => void;
+  setHydrated: (hydrated: boolean) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -19,6 +21,7 @@ export const useUserStore = create<UserState>()(
       token: null,
       selectedRole: null,
       onboardingCompleted: false,
+      hasHydrated: false,
       setUser: (userId, token) => set({ userId, token }),
       setRole: (role) => set({ selectedRole: role }),
       completeOnboarding: () => set({ onboardingCompleted: true }),
@@ -29,7 +32,14 @@ export const useUserStore = create<UserState>()(
           selectedRole: null,
           onboardingCompleted: false,
         }),
+      setHydrated: (hydrated) => set({ hasHydrated: hydrated }),
     }),
-    { name: 'user-storage' },
+    {
+      name: 'user-storage',
+      storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHydrated(true);
+      },
+    },
   ),
 );
