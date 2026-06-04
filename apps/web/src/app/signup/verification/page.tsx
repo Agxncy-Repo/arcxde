@@ -19,7 +19,7 @@ export default function VerifyLandingPage() {
     verifyTokenMutation.mutate(
       { token },
       {
-        onSuccess: (response: any) => {
+        onSuccess: (response: { email: string; registrationToken: string }) => {
           const registrationToken = response.registrationToken;
 
           router.push(`/signup/finalize?token=${registrationToken}`);

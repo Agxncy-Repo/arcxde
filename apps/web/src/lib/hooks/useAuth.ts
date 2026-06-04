@@ -64,14 +64,18 @@ export const useFinalizeSignup = () => {
         const response = await api.post<FinalizeSignupResponse>('/users/finalize-signup', payload);
 
         return response;
-      } catch (networkError: any) {
+      } catch (networkError: unknown) {
+        const err = networkError as {
+          response?: { status?: number; statusText?: string; data?: unknown };
+          message?: string;
+        };
         console.error(' Network Request Failed Directly inside mutationFn:', {
-          status: networkError?.response?.status,
-          statusText: networkError?.response?.statusText,
-          data: networkError?.response?.data,
-          message: networkError?.message,
+          status: err?.response?.status,
+          statusText: err?.response?.statusText,
+          data: err?.response?.data,
+          message: err?.message,
         });
-        throw networkError; // Re-throw so React Query handles it in onError
+        throw networkError;
       }
     },
     onSuccess: (data) => {
@@ -79,25 +83,40 @@ export const useFinalizeSignup = () => {
         setError(null);
 
         // Resolve data layer safely based on what your API client wraps
-        const actualData = (data as any).data && !(data as any).user ? (data as any).data : data;
+        const actualData =
+          (data as { data?: { user: { id: string }; accessToken: string } }).data &&
+          !(data as { user?: unknown }).user
+            ? (data as { data: { user: { id: string }; accessToken: string } }).data
+            : (data as { user: { id: string }; accessToken: string });
         setUser(actualData.user.id, actualData.accessToken);
 
         // Redirect to the onboarding step after successful registration finalization
         router.push('/signup/role');
-      } catch (jsError: any) {
-        console.error('[useFinalizeSignup] error in onSuccess:', jsError?.message, jsError?.stack);
-        setError(`Client formatting error: ${jsError?.message}`);
+      } catch (jsError: unknown) {
+        const errMsg = jsError instanceof Error ? jsError.message : 'Unknown error';
+        console.error(
+          '[useFinalizeSignup] error in onSuccess:',
+          errMsg,
+          jsError instanceof Error ? jsError.stack : undefined,
+        );
+        setError(`Client formatting error: ${errMsg}`);
       }
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const errorObj = err as {
+        message?: string;
+        response?: { data?: { message?: string }; status?: number };
+      };
       console.error('Mutation onError Handler triggered:', {
-        message: err?.message,
-        serverResponseData: err?.response?.data,
-        status: err?.response?.status,
+        message: errorObj?.message,
+        serverResponseData: errorObj?.response?.data,
+        status: errorObj?.response?.status,
       });
 
       setError(
-        err?.response?.data?.message || err?.message || 'Failed to complete registration profile.',
+        errorObj?.response?.data?.message ||
+          errorObj?.message ||
+          'Failed to complete registration profile.',
       );
     },
   });
