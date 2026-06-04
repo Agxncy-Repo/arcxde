@@ -1,12 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useVerifySignupToken } from '@/lib/hooks/useAuth';
 import { SlantEgg } from '@/components/slant-egg';
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 
-export default function VerifyLandingPage() {
+function VerifyLandingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token'); // Grab token from URL query string
@@ -89,5 +90,19 @@ export default function VerifyLandingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyLandingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#222] flex items-center justify-center">
+          <p style={{ fontFamily: "'Suisse Int\\'l', system-ui, sans-serif", color: 'white', fontSize: 18 }}>Loading...</p>
+        </div>
+      }
+    >
+      <VerifyLandingContent />
+    </Suspense>
   );
 }
