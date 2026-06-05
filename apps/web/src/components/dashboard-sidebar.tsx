@@ -23,8 +23,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home', iconSrc: '/icons/home.svg', href: '#', active: true },
   { label: 'Courses', iconSrc: '/icons/route.svg', href: '#' },
-  { label: 'Favourites', iconSrc: '/icons/group5.svg', href: '#' },
-  { label: 'Rewards', iconSrc: '/icons/group8.svg', href: '#' },
+  { label: 'Favourites', iconSrc: '/icons/favourites.svg', href: '#' },
+  { label: 'Rewards', iconSrc: '/icons/rewards.svg', href: '#' },
   { label: 'Glossary', iconSrc: '/icons/book_2.svg', href: '#' },
   { label: 'Search', iconSrc: '/icons/search.svg', href: '#' },
 ];

@@ -7,6 +7,7 @@ export interface DashboardCardProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
   contentType?: ContentType;
   variant?: 'signal' | 'course' | 'community';
+  size?: 'default' | 'compact';
 }
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
@@ -25,7 +26,7 @@ const ICON_SRC: Record<ContentType, string> = {
 };
 
 export const DashboardCard = forwardRef<HTMLDivElement, DashboardCardProps>(
-  ({ title, contentType, variant = 'course', className, ...props }, ref) => {
+  ({ title, contentType, variant = 'course', size = 'default', className, ...props }, ref) => {
     const dims = {
       signal: {
         w: 467.2,
@@ -36,12 +37,12 @@ export const DashboardCard = forwardRef<HTMLDivElement, DashboardCardProps>(
         titleW: 374,
       },
       course: {
-        w: 467.2,
-        h: 344,
+        w: size === 'compact' ? 330 : 467.2,
+        h: size === 'compact' ? 243 : 344,
         textAlign: 'center' as const,
-        titleTop: 140,
-        titleLeft: 68,
-        titleW: 330,
+        titleTop: size === 'compact' ? 100 : 140,
+        titleLeft: size === 'compact' ? 48 : 68,
+        titleW: size === 'compact' ? 234 : 330,
       },
       community: {
         w: 364.5,
@@ -74,9 +75,9 @@ export const DashboardCard = forwardRef<HTMLDivElement, DashboardCardProps>(
             right: dims.titleLeft,
             width: dims.titleW,
             fontFamily: FONT,
-            fontSize: 32.52,
+            fontSize: variant === 'course' && size === 'compact' ? 20 : 32.52,
             fontWeight: 300,
-            lineHeight: variant === 'course' ? '150%' : '100%',
+            lineHeight: variant === 'course' ? '140%' : '100%',
             color: 'white',
             textAlign: dims.textAlign,
             margin: 0,

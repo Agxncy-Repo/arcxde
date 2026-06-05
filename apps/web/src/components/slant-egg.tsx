@@ -43,12 +43,12 @@ export const SlantEgg = forwardRef<HTMLDivElement, SlantEggProps>(
             <ellipse
               cx="47.5"
               cy="48.95"
-              rx="34"
+              rx="30"
               ry="43"
               stroke="white"
               strokeWidth="0.9"
               opacity="0.55"
-              transform="rotate(-20 47.5 48.95)"
+              transform="rotate(-35 47.5 48.95)"
             />
           </svg>
         </div>
@@ -82,12 +82,12 @@ export const SlantEgg = forwardRef<HTMLDivElement, SlantEggProps>(
             <ellipse
               cx="151.5"
               cy="156.1"
-              rx="112"
+              rx="90"
               ry="145"
               stroke="white"
               strokeWidth="1"
               opacity="0.55"
-              transform="rotate(-20 151.5 156.1)"
+              transform="rotate(-35 151.5 156.1)"
             />
           </g>
 
