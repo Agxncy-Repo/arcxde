@@ -82,7 +82,7 @@ export const SlantEgg = forwardRef<HTMLDivElement, SlantEggProps>(
             <ellipse
               cx="151.5"
               cy="156.1"
-              rx="112"
+              rx="90"
               ry="145"
               stroke="white"
               strokeWidth="1"
