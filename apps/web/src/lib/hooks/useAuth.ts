@@ -27,14 +27,14 @@ interface LoginResponse {
   };
 }
 
-// Initial hit: Triggers the 6-digit email dispatch
+// Initial hit: Triggers the email dispatch
 export const useSendVerificationEmail = () => {
   return useMutation({
     mutationFn: (data: { email: string }) => api.post('/signup/email', data),
   });
 };
 
-// New hook: Verifies the 6-digit code and returns a temporary token or session
+// New hook: Verifies the magic link and returns a temporary token or session
 export const useVerifySignupToken = () => {
   return useMutation({
     mutationFn: (data: { token: string }) =>
@@ -61,7 +61,7 @@ export const useFinalizeSignup = () => {
   const mutation = useMutation({
     mutationFn: async (payload: FinalizeRegistrationDto) => {
       try {
-        const response = await api.post<FinalizeSignupResponse>('/users/finalize-signup', payload);
+        const response = await api.post<FinalizeSignupResponse>('/signup/finalize-registration', payload);
 
         return response;
       } catch (networkError: unknown) {

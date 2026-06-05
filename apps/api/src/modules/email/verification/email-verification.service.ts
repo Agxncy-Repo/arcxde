@@ -22,48 +22,7 @@ export class EmailVerificationService {
     private readonly emailService: EmailService,
   ) {}
 
-  // Initiates the email verification process by generating a unique token link and sending it to the user
-  async initiateEmailVerification(email: string): Promise<void> {
-    const formattedEmail = email.trim().toLowerCase();
-
-    // 1. Production Rate-Limit Check: Max links per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentLinksCount = await this.prisma.verificationToken.count({
-      where: {
-        email: formattedEmail,
-        createdAt: { gte: oneHourAgo },
-      },
-    });
-
-    if (recentLinksCount >= this.maxVerificationAttempts) {
-      throw new BadRequestException('Too many verification requests. Please try again in an hour.');
-    }
-
-    // 2. Generate a high-entropy cryptographically secure unique token string
-    const token = crypto.randomBytes(32).toString('hex');
-
-    // 3. One active link strategy per user account (State Layer Transaction)
-    await this.prisma.$transaction([
-      this.prisma.verificationToken.deleteMany({ where: { email: formattedEmail } }),
-      this.prisma.verificationToken.create({
-        data: {
-          email: formattedEmail,
-          token,
-          attempts: 0, // Explicitly reset attempts on a new link generation
-          expiresAt: new Date(Date.now() + this.codeTTL * 60 * 1000),
-        },
-      }),
-    ]);
-
-    // 4. Construct the full redirect link pointing directly to your Next.js frontend route
-    const frontendUrl =
-      process.env.FRONTEND_VERIFY_URL || 'http://localhost:3000/signup/verification';
-    const verificationLink = `${frontendUrl}?token=${token}`;
-
-    // 5. Asynchronous Event Layer Dispatch (Out of database transaction)
-    await this.emailService.sendVerificationLink(formattedEmail, verificationLink);
-  }
-
+  
   // Verifies the secure URL token string and transitions the user to an active onboarding session
   async verifyMagicLink(token: string): Promise<{ email: string; registrationToken: string }> {
     // 1. Fetch the metadata directly via the unique secure token string
@@ -100,29 +59,38 @@ export class EmailVerificationService {
     const registrationToken = crypto.randomBytes(32).toString('hex');
 
     try {
-      await this.prisma.$transaction([
-        // 1. Wipe out ANY existing registration sessions for this email address.
-        // This clears out stale unique tokens completely and guarantees no constraint conflicts.
-        this.prisma.emailVerificationSession.deleteMany({
-          where: { email: formattedEmail },
-        }),
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Promote the actual user record to email_verified: true
+        await tx.user.update({
+          where: { id: record.userId }, 
+          data: { 
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
+        });
 
-        // 2. Freshly create the verified onboarding session state.
-        // Since step 1 guaranteed a clean slate, this will NEVER throw a unique constraint error on email.
-        this.prisma.emailVerificationSession.create({
+        // 2. Wipe out ANY existing registration sessions for this email address.
+        // This clears out stale unique tokens completely and guarantees no constraint conflicts.
+        await tx.emailVerificationSession.deleteMany({
+          where: { email: formattedEmail },
+        });
+
+        // 3. Freshly create the verified onboarding session state.
+        // Since step 2 guaranteed a clean slate, this will NEVER throw a unique constraint error on email.
+        await tx.emailVerificationSession.create({
           data: {
             email: formattedEmail,
             verified: true,
             registrationToken: registrationToken,
             expiresAt: sessionExpiry,
           },
-        }),
+        });
 
-        // 3. Prune the consumed verification token immediately so it can never be re-played
-        this.prisma.verificationToken.delete({
+        // 4. Prune the consumed verification token immediately so it can never be re-played
+        await tx.verificationToken.delete({
           where: { id: record.id },
-        }),
-      ]);
+        });
+      });
 
       // Return the secure temporary registration token to the controller layer
       return { email: formattedEmail, registrationToken };
@@ -138,6 +106,58 @@ export class EmailVerificationService {
     }
   }
 
+  async sendMagicLinkEmail(userId: string, email: string, purpose: 'SIGNUP' | 'LOGIN'): Promise<void> {
+    const formattedEmail = email.trim().toLowerCase();
+    
+    //  Production Rate-Limit Check: Max links per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentLinksCount = await this.prisma.verificationToken.count({
+      where: {
+        email: formattedEmail,
+        createdAt: { gte: oneHourAgo },
+      },
+    });
+
+    if (recentLinksCount >= this.maxVerificationAttempts) {
+      throw new BadRequestException('Too many verification requests. Please try again in an hour.');
+    }
+
+    // 1. Generate a 32-byte secure hex string token
+    const magicToken = crypto.randomBytes(32).toString('hex');
+    
+    // 2. Set token lifespan (e.g., 30 minutes)
+    const tokenLifespanMinutes = 30;
+    const expiresAt = new Date(Date.now() + tokenLifespanMinutes * 60 * 1000);
+
+    // 3. Atomically upsert the verification token linked to this user ID
+    // This cleans up any old token if they click "resend" multiple times
+    await this.prisma.verificationToken.upsert({
+      where: { userId},
+      update: {
+        token: magicToken,
+        expiresAt,
+      },
+      create: {
+        userId,
+        email: formattedEmail,
+        token: magicToken,
+        expiresAt,
+      },
+    });
+
+    // 4. Construct the full redirect link pointing directly to your Next.js frontend route
+    const frontendUrl =
+      process.env.FRONTEND_VERIFY_URL || 'http://localhost:3000/signup/verification';
+    const magicLinkUrl = `${frontendUrl}?token=${magicToken}`;
+
+    // 5. Dispatch dynamic layouts depending on the flow purpose
+    if (purpose === 'LOGIN') {
+      await this.emailService.sendLoginLink(formattedEmail, magicLinkUrl);
+    } else {
+      await this.emailService.sendVerificationLink(formattedEmail, magicLinkUrl);
+    }
+  }
+
   // Helper method: if someone hits your validation with a bad token structure but you want to track attempts manually via an email fallback
   async registerFailedAttempt(email: string): Promise<void> {
     const formattedEmail = email.trim().toLowerCase();
@@ -148,18 +168,19 @@ export class EmailVerificationService {
   }
 
   // Validates that the user has an active verified session for their email before allowing them to proceed with registration
-  async validateActiveSessionOrThrow(email: string): Promise<void> {
-    const formattedEmail = email.trim().toLowerCase();
-
+  async validateActiveSessionOrThrow(registrationToken: string): Promise<{ email: string }> {
     const session = await this.prisma.emailVerificationSession.findFirst({
-      where: { email: formattedEmail },
+      where: { registrationToken },
     });
-
-    if (!session || !session.verified || new Date() > session.expiresAt) {
+    const sessionExpireTime = session?.expiresAt.getTime() ?? 0;
+    const currentServerTime = new Date().getTime();
+    // If no session, or session isn't verified, or session is expired, block the registration flow
+    if (!session || !session.verified || currentServerTime > sessionExpireTime) {
       throw new UnauthorizedException(
         'Email verification required or onboarding session has expired.',
       );
     }
+    return { email: session.email };
   }
 
   async consumeSession(email: string): Promise<void> {
@@ -189,6 +210,7 @@ export class EmailVerificationService {
             token: registrationToken,
             attempts: 0,
             expiresAt: new Date(Date.now() + codeTTL * 60 * 1000),
+            userId: `test-user-${registrationToken}`, // Link the token to a pseudo-user for testing
           },
         }),
       ]);

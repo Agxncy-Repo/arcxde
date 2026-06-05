@@ -53,6 +53,24 @@ export const individualSignupBodySchema = z.object({
 export type IndividualSignupBody = z.infer<typeof individualSignupBodySchema>;
 
 // ============================================================================
+// 3.1. Finalize Registration (Post-Verification) - Shared by Both Individual & Organization Flows
+// ============================================================================
+export const finalizeRegistrationSchema = z
+  .object({
+    token: z.string().min(1, 'Session token is required'),
+    firstName: z.string().min(2, 'First name must be at least 2 characters').trim(),
+    lastName: z.string().min(2, 'Last name must be at least 2 characters').trim(),
+    password: passwordSchema, // Reuse the password validation from auth.ts
+    confirmPassword: z.string().min(8, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'], // Highlights the confirm password field in the UI
+  });
+
+export type FinalizeRegistrationDto = z.infer<typeof finalizeRegistrationSchema>;
+
+// ============================================================================
 // 4. Organization Signup
 // ============================================================================
 export const organizationSignupBodySchema = z.object({

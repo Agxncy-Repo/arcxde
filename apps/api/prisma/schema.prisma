@@ -113,6 +113,7 @@ model User {
   lessonProgress   UserLessonProgress[]
   onboarding       UserOnboarding?
   onboardingResult UserOnboardingResult?
+  verificationTokens  VerificationToken?
 
   @@index([createdAt])
   @@map("users")
@@ -178,12 +179,15 @@ model Session {
 // Verification tokens for email-based actions (signup, password reset, MFA)
 model VerificationToken{
   id         String   @id @default(dbgenerated("'vt_' || gen_random_uuid()::text")) 
-  email      String   @map("user_id")
+  userId     String   @unique @map("user_id") @db.VarChar(255)
+  email      String   @map("email") @db.VarChar(254)
   token      String   @unique // Plain token for lookup; hashed before storage
   attempts   Int      @default(0) // Incremented on each failed verification attempt
   attemptedAt DateTime? @map("attempted_at") @db.Timestamptz(6) // Last attempt timestamp
   expiresAt  DateTime @default(now()) @map("expires_at") @db.Timestamptz(6)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@map("verification_tokens")
