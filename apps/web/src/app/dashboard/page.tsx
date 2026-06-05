@@ -40,7 +40,10 @@ const COMMUNITY = [
  */
 export default function DashboardPage() {
   return (
-    <div className="bg-[#222]" style={{ minHeight: 1402, position: 'relative' }}>
+    <div
+      className="bg-[#222]"
+      style={{ minHeight: 1402, position: 'relative', overflow: 'hidden' }}
+    >
       <DashboardSidebar />
 
       {/* Main content — starts after sidebar (x=244) */}
@@ -70,7 +73,14 @@ export default function DashboardPage() {
           >
             Signals
           </p>
-          <div style={{ display: 'flex', gap: 26.5, overflowX: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 26.5,
+              overflowX: 'auto',
+              maxWidth: 'calc(100vw - 273px)',
+            }}
+          >
             {SIGNALS.map((s) => (
               <DashboardCard key={s.id} title={s.title} variant="signal" />
             ))}
@@ -78,7 +88,9 @@ export default function DashboardPage() {
         </section>
 
         {/* ── YOUR COURSES ── top 289 (relative to content), label y=289 */}
-        <section style={{ position: 'absolute', top: 289, left: 144 }}>
+        <section
+          style={{ position: 'absolute', top: 289, left: 144, maxWidth: 'calc(100vw - 388px)' }}
+        >
           <p
             style={{
               fontFamily: FONT,
@@ -92,40 +104,17 @@ export default function DashboardPage() {
           >
             Your Courses
           </p>
-          {/* Two rows of 3 */}
-          <div style={{ display: 'flex', gap: 26.5, marginBottom: 20 }}>
-            {COURSES.slice(0, 3).map((c) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26.5 }}>
+            {COURSES.map((c) => (
               <DashboardCard
                 key={c.id}
                 title={c.title}
                 contentType={c.contentType}
                 variant="course"
+                size="compact"
               />
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 26.5 }}>
-            {COURSES.slice(3).map((c) => (
-              <DashboardCard
-                key={c.id}
-                title={c.title}
-                contentType={c.contentType}
-                variant="course"
-              />
-            ))}
-          </div>
-          <p
-            style={{
-              fontFamily: FONT,
-              fontSize: 16,
-              fontWeight: 300,
-              textTransform: 'uppercase',
-              color: 'white',
-              textAlign: 'right',
-              marginTop: 12,
-            }}
-          >
-            MORE...
-          </p>
         </section>
 
         <div
@@ -153,7 +142,14 @@ export default function DashboardPage() {
           >
             Community
           </p>
-          <div style={{ display: 'flex', gap: 20.5, overflowX: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 20.5,
+              overflowX: 'auto',
+              maxWidth: 'calc(100vw - 273px)',
+            }}
+          >
             {COMMUNITY.map((c) => (
               <DashboardCard key={c.id} title={c.title} variant="community" />
             ))}
