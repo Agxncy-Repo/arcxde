@@ -53,7 +53,13 @@ function FinalizeSignupContent() {
       return;
     }
 
-    const payload: any = {
+    const payload: {
+      token: string;
+      password: string;
+      confirmPassword: string;
+      firstName?: string;
+      lastName?: string;
+    } = {
       token,
       password: form.password,
       confirmPassword: form.confirmPassword,

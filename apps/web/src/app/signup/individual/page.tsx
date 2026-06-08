@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { SlantEgg } from '@/components/slant-egg';
-import { useGoogleAuth, useSendVerificationEmail, useVerifySignupToken } from '@/lib/hooks/useAuth';
+import { useGoogleAuth, useSendVerificationEmail } from '@/lib/hooks/useAuth';
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 
@@ -30,15 +29,11 @@ const GoogleLogo = () => (
 );
 
 export default function IndividualSignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [step, setStep] = useState<'email' | 'code'>('email');
-  const [verificationToken, setVerificationToken] = useState('');
 
   const { redirectToGoogle, isRedirecting } = useGoogleAuth();
   const sendVerificationEmailMutation = useSendVerificationEmail();
-  const verifyTokenMutation = useVerifySignupToken();
 
   // Action 1: Handle Email Submission
   const handleSendEmail = () => {
@@ -300,21 +295,6 @@ export default function IndividualSignupPage() {
           >
             {sendVerificationEmailMutation.error?.message ||
               'Failed to send verification email. Please try again.'}
-          </p>
-        )}
-
-        {verifyTokenMutation.isError && (
-          <p
-            style={{
-              fontFamily: FONT,
-              fontSize: 14,
-              fontWeight: 300,
-              lineHeight: '100%',
-              color: '#ff6b6b',
-              marginBottom: 32,
-            }}
-          >
-            {verifyTokenMutation.error?.message || 'Verification failed. Please try again.'}
           </p>
         )}
 
