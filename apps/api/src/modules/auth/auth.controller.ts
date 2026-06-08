@@ -18,7 +18,7 @@ import {
   type TestEmailSchema,
 } from '@app/contracts';
 
-import type { Request, Response } from 'express';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
@@ -48,7 +48,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiResponse({ status: 200, description: 'Initiates Google OAuth flow.' })
-  async googleAuth(@Req() _req: Request): Promise<void> {
+  async googleAuth(@Req() _req: FastifyRequest): Promise<void> {
     // Triggers the initial OAuth redirect handshake handled by Passport Google Strategy
   }
 
@@ -56,7 +56,10 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async googleAuthRedirect(@Req() req: Request, @Res() res: Response): Promise<void> {
+  async googleAuthRedirect(
+    @Req() req: FastifyRequest & { user?: unknown },
+    @Res() res: FastifyReply,
+  ): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
       const profile = req.user as NormalizedProfile;
@@ -80,7 +83,7 @@ export class AuthController {
 
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
-      return res.redirect(302, finalRedirectUrl);
+      return res.redirect(finalRedirectUrl, 302);
     } catch (error: unknown) {
       // Direct print to screen if something else breaks inside the service loop
       const message = error instanceof Error ? error.message : String(error);
@@ -99,7 +102,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+  async logout(
+    @Req() req: FastifyRequest & { user?: unknown },
+    @Res() res: FastifyReply,
+  ): Promise<void> {
     try {
       // Extract the session ID attached by JwtStrategy
       const sessionId = (req.user as { sessionId?: string }).sessionId;
