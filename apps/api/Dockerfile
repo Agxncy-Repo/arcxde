@@ -24,8 +24,7 @@ COPY packages/config/package.json packages/config/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/utils/package.json packages/utils/
 
-RUN --mount=type=cache,id=cache-pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # ---- 2. Builder ----
 FROM node:22-alpine AS builder
