@@ -83,7 +83,8 @@ export class AuthController {
 
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
-      return res.redirect(finalRedirectUrl, 302);
+      res.redirect(finalRedirectUrl, 302);
+      return;
     } catch (error: unknown) {
       // Direct print to screen if something else breaks inside the service loop
       const message = error instanceof Error ? error.message : String(error);
