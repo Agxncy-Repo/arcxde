@@ -18,6 +18,7 @@ import {
   type TestEmailSchema,
 } from '@app/contracts';
 
+import type { Request, Response } from 'express';
 import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
@@ -47,7 +48,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiResponse({ status: 200, description: 'Initiates Google OAuth flow.' })
-  async googleAuth(@Req() _req: unknown): Promise<void> {
+  async googleAuth(@Req() _req: Request): Promise<void> {
     // Triggers the initial OAuth redirect handshake handled by Passport Google Strategy
   }
 
@@ -55,7 +56,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async googleAuthRedirect(@Req() req: any, @Res() res: any): Promise<void> {
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
       const profile = req.user as NormalizedProfile;
@@ -79,14 +80,15 @@ export class AuthController {
 
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
-      return res.redirect(finalRedirectUrl, 302);
+      return res.redirect(302, finalRedirectUrl);
     } catch (error: unknown) {
       // Direct print to screen if something else breaks inside the service loop
       const message = error instanceof Error ? error.message : String(error);
-      return res.status(500).send({
+      res.status(500).send({
         error: 'Redirect Loop Exception',
         message,
       });
+      return;
     }
   }
 
@@ -97,7 +99,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async logout(@Req() req: any, @Res() res: any): Promise<void> {
+  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
     try {
       // Extract the session ID attached by JwtStrategy
       const sessionId = (req.user as { sessionId?: string }).sessionId;
@@ -112,18 +114,20 @@ export class AuthController {
       // 2. If you are using HTTP-only cookies for refresh tokens, clear them here:
       // res.clearCookie('refreshToken', { ...cookieOptions });
 
-      // 3. Fastify reply confirmation
-      return res.status(200).send({
+      // 3. Express response confirmation
+      res.status(200).send({
         success: true,
         message: 'Logged out successfully. Token session has been revoked.',
         sessionId: sessionId,
       });
+      return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return res.status(400).send({
+      res.status(400).send({
         error: 'Logout Error',
         message,
       });
+      return;
     }
   }
 
