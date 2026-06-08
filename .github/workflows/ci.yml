@@ -44,14 +44,12 @@ jobs:
 
       - name: Format check
         run: pnpm format:check
-        continue-on-error: true
 
       - name: Prisma generate
         run: pnpm db:generate
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true
 
       - name: Typecheck
         if: always #Forces typecheck to run even if lint/format check fail
