@@ -56,12 +56,10 @@ module.exports = {
     'import/order': [
       'warn',
       {
-        groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object', 'type'],
-        'newlines-between': 'always',
-        alphabetize: { order: 'asc', caseInsensitive: true },
+        groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+        'newlines-between': 'ignore',
       },
     ],
-    'import/no-default-export': 'warn',
     'import/no-cycle': ['error', { maxDepth: 5 }],
     'import/no-self-import': 'error',
 
