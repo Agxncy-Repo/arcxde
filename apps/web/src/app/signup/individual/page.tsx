@@ -52,23 +52,6 @@ export default function IndividualSignupPage() {
     );
   };
 
-  // Action 2: Handle Code Verification Submission
-  const handleVerifyToken = () => {
-    verifyTokenMutation.mutate(
-      { token: verificationToken },
-      {
-        onSuccess: (response) => {
-          // Save the secure token returned from the backend verification step
-          const token = response.registrationToken;
-
-          // Redirect them to the final profile/password creation page
-          // Passing the token securely via query params so the next page can use it
-          router.push(`/signup/finalize?token=${token}`);
-        },
-      },
-    );
-  };
-
   if (step === 'code') {
     return (
       <div className="min-h-screen bg-[#222] overflow-hidden flex">

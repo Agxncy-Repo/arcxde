@@ -29,7 +29,10 @@ export class SignupController {
   ) //  100% Automated & In Sync
   async initiateVerification(@ZodBody(emailInitiateSchema) body: EmailInitiateSchema) {
     await this.signupService.initializeMagicLinkSignup(body);
-    return { message: 'Verification pin dispatched successfully. Temp User Created.' };
+    return {
+      success: true,
+      message: 'Verification pin dispatched successfully. Temp User Created.',
+    };
   }
 
   @Post('verify-link')
@@ -42,10 +45,14 @@ export class SignupController {
       message: 'Email address successfully verified.',
       email: result.email,
       registrationToken: result.registrationToken,
+      status: result.status,
     };
   }
   @Post('finalize-registration')
-  @ApiZodBody(finalizeRegistrationSchema,'Completes profile registration and provisions the account.',)
+  @ApiZodBody(
+    finalizeRegistrationSchema,
+    'Completes profile registration and provisions the account.',
+  )
   async finalizeSignup(
     @ZodBody(finalizeRegistrationSchema) body: FinalizeRegistrationDto,
     @Res({ passthrough: true }) res: any, // Typing as Express Response with passthrough
@@ -70,5 +77,4 @@ export class SignupController {
       accessToken: result.tokens.accessToken,
     };
   }
-
 }

@@ -1,5 +1,5 @@
 // src/modules/auth/auth.service.ts
-import {  Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from './auth.repository.js';
 import { NormalizedProfile } from './models/auth-registration.interface.js';
 import { JwtService } from '@nestjs/jwt';
@@ -15,13 +15,33 @@ export class AuthService {
     private readonly identityResolver: IdentityResolver,
     private readonly jwtService: JwtService,
   ) {}
-  
 
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use
   async registerOrLoginWithProvider(profile: NormalizedProfile) {
     var user = null;
     // 1. Attempt to resolve the incoming profile to an existing user identity or account
     const identityResult = await this.resolveAccount(profile);
+
+    // 🌲 UPDATE USER FLAGS BEFORE GENERATING THE SESSION 🌲
+    if (identityResult.isNewUser) {
+      // If the account was just created, ensure its flags bypass manual entry requirements
+      await this.authRepository.updateUserFlags(identityResult.userId, {
+        emailVerified: true,
+        registrationCompleted: true,
+        onboardingCompleted: false, // Ready for the questionnaire
+      });
+    } else {
+      // For returning users who might have previously dropped out on manual verification,
+      // logging in via OAuth retroactively completes their registration.
+      const existingUser = await this.authRepository.findUserById(identityResult.userId);
+
+      if (existingUser && (!existingUser.emailVerified || !existingUser.registrationCompleted)) {
+        await this.authRepository.updateUserFlags(identityResult.userId, {
+          emailVerified: true,
+          registrationCompleted: true,
+        });
+      }
+    }
 
     // 2. With a resolved user context, generate a new authenticated session with token rotation
     const tokens = await this.createAuthenticatedSession(identityResult.userId);

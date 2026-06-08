@@ -12,10 +12,14 @@ const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 function FinalizeSignupContent() {
   const searchParams = useSearchParams();
 
-  // Grab the secure temporary session token directly out of the URL string
+  // Grab parameters out of the URL string
   const token = searchParams.get('token');
+  const status = searchParams.get('status');
 
-  // Consume the clean, typed custom hook capabilities
+  // Check if the user track is strictly account linking (e.g., OAuth returning user adding a password)
+  const isLinkFlow = status === 'PENDING_REGISTRATION';
+
+  // Consume the custom authentication hook capabilities
   const { finalizeSignup, isFinalizing, finalizeError, clearFinalizeError } = useFinalizeSignup();
 
   // Keep local UI form state minimal
@@ -32,12 +36,11 @@ function FinalizeSignupContent() {
     setLocalError(null);
     clearFinalizeError();
 
-    if (
-      !form.firstName.trim() ||
-      !form.lastName.trim() ||
-      !form.password ||
-      !form.confirmPassword
-    ) {
+    // Update validation criteria based on active user context track
+    const isPasswordInvalid = !form.password || !form.confirmPassword;
+    const isNameInvalid = !isLinkFlow && (!form.firstName.trim() || !form.lastName.trim());
+
+    if (isPasswordInvalid || isNameInvalid) {
       setLocalError('All fields are required. Please fill in all missing information.');
       return;
     }
@@ -50,13 +53,16 @@ function FinalizeSignupContent() {
       return;
     }
 
-    finalizeSignup({
+    const payload: any = {
       token,
-      firstName: form.firstName,
-      lastName: form.lastName,
       password: form.password,
       confirmPassword: form.confirmPassword,
-    });
+    };
+    if (!isLinkFlow) {
+      payload.firstName = form.firstName;
+      payload.lastName = form.lastName;
+    }
+    finalizeSignup(payload);
   };
 
   const activeDisplayError = finalizeError || localError;
@@ -98,7 +104,7 @@ function FinalizeSignupContent() {
           ←
         </Link>
 
-        {/* Heading */}
+        {/* Dynamic Heading */}
         <h1
           style={{
             fontFamily: FONT,
@@ -109,10 +115,10 @@ function FinalizeSignupContent() {
             marginBottom: 18,
           }}
         >
-          Complete your profile
+          {isLinkFlow ? 'Create a password' : 'Complete your profile'}
         </h1>
 
-        {/* Subtitle */}
+        {/* Dynamic Subtitle */}
         <p
           style={{
             fontFamily: FONT,
@@ -123,7 +129,9 @@ function FinalizeSignupContent() {
             marginBottom: 48,
           }}
         >
-          Please provide your details below to activate your account.
+          {isLinkFlow
+            ? 'Add email access to your account by choosing a secure password.'
+            : 'Please provide your details below to activate your account.'}
         </p>
 
         {/* Server/Validation Error Banner */}
@@ -134,37 +142,39 @@ function FinalizeSignupContent() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5 max-w-xl">
-          {/* First & Last Name Inputs side-by-side */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-white mb-1.5">
-                First Name
-              </label>
-              <input
-                type="text"
-                required
-                disabled={isFinalizing}
-                placeholder="John"
-                className="w-full bg-[#1a1a1a] border border-[#444] p-3 text-sm rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-white disabled:bg-neutral-900 disabled:text-neutral-600 transition-colors"
-                value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-              />
+          {/* 💡 OMITTED CONDITIONAL LAYOUT: Hide profile collection field inputs on account links */}
+          {!isLinkFlow && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-white mb-1.5">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={isFinalizing}
+                  placeholder="John"
+                  className="w-full bg-[#1a1a1a] border border-[#444] p-3 text-sm rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-white disabled:bg-neutral-900 disabled:text-neutral-600 transition-colors"
+                  value={form.firstName}
+                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-white mb-1.5">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={isFinalizing}
+                  placeholder="Doe"
+                  className="w-full bg-[#1a1a1a] border border-[#444] p-3 text-sm rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-white disabled:bg-neutral-900 disabled:text-neutral-600 transition-colors"
+                  value={form.lastName}
+                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-white mb-1.5">
-                Last Name
-              </label>
-              <input
-                type="text"
-                required
-                disabled={isFinalizing}
-                placeholder="Doe"
-                className="w-full bg-[#1a1a1a] border border-[#444] p-3 text-sm rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-white disabled:bg-neutral-900 disabled:text-neutral-600 transition-colors"
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-              />
-            </div>
-          </div>
+          )}
 
           {/* New Password Input */}
           <div>
@@ -212,6 +222,7 @@ function FinalizeSignupContent() {
                     className="opacity-25"
                     cx="12"
                     cy="12"
+                    id="12"
                     r="10"
                     stroke="currentColor"
                     strokeWidth="4"
@@ -222,8 +233,10 @@ function FinalizeSignupContent() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Setting up account...
+                {isLinkFlow ? 'Linking identity track...' : 'Setting up account...'}
               </span>
+            ) : isLinkFlow ? (
+              'Link Account & Sign In'
             ) : (
               'Complete Registration'
             )}
@@ -239,7 +252,15 @@ export default function FinalizeSignupPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#222] flex items-center justify-center">
-          <p style={{ fontFamily: "'Suisse Int\\'l', system-ui, sans-serif", color: 'white', fontSize: 18 }}>Loading...</p>
+          <p
+            style={{
+              fontFamily: "'Suisse Int\\'l', system-ui, sans-serif",
+              color: 'white',
+              fontSize: 18,
+            }}
+          >
+            Loading...
+          </p>
         </div>
       }
     >

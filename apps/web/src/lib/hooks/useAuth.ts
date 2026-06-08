@@ -38,7 +38,11 @@ export const useSendVerificationEmail = () => {
 export const useVerifySignupToken = () => {
   return useMutation({
     mutationFn: (data: { token: string }) =>
-      api.post<{ email: string; registrationToken: string }>('/signup/verify-link', data),
+      api.post<{
+        email: string;
+        registrationToken: string;
+        status: 'NEW_USER' | 'PENDING_ONBOARDING' | 'PENDING_REGISTRATION' | 'EXISTING_USER';
+      }>('/signup/verify-link', data),
   });
 };
 export const useLoginWithEmailAndPassword = () => {
@@ -61,7 +65,10 @@ export const useFinalizeSignup = () => {
   const mutation = useMutation({
     mutationFn: async (payload: FinalizeRegistrationDto) => {
       try {
-        const response = await api.post<FinalizeSignupResponse>('/signup/finalize-registration', payload);
+        const response = await api.post<FinalizeSignupResponse>(
+          '/signup/finalize-registration',
+          payload,
+        );
 
         return response;
       } catch (networkError: unknown) {
@@ -83,8 +90,13 @@ export const useFinalizeSignup = () => {
         setError(null);
 
         // Resolve data layer safely based on what your API client wraps
-        const raw = data as unknown as { data?: { user: { id: string }; accessToken: string }; user?: { id: string }; accessToken?: string };
-        const actualData = raw.data && !raw.user ? raw.data : raw as { user: { id: string }; accessToken: string };
+        const raw = data as unknown as {
+          data?: { user: { id: string }; accessToken: string };
+          user?: { id: string };
+          accessToken?: string;
+        };
+        const actualData =
+          raw.data && !raw.user ? raw.data : (raw as { user: { id: string }; accessToken: string });
         setUser(actualData.user.id, actualData.accessToken);
 
         // Redirect to the onboarding step after successful registration finalization

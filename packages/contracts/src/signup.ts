@@ -58,14 +58,39 @@ export type IndividualSignupBody = z.infer<typeof individualSignupBodySchema>;
 export const finalizeRegistrationSchema = z
   .object({
     token: z.string().min(1, 'Session token is required'),
-    firstName: z.string().min(2, 'First name must be at least 2 characters').trim(),
-    lastName: z.string().min(2, 'Last name must be at least 2 characters').trim(),
-    password: passwordSchema, // Reuse the password validation from auth.ts
+    password: passwordSchema,
     confirmPassword: z.string().min(8, 'Please confirm your password'),
+
+    // 💡 Allow optional strings or empty values for account link flows
+    firstName: z.string().trim().optional().or(z.literal('')),
+    lastName: z.string().trim().optional().or(z.literal('')),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
-    path: ['confirmPassword'], // Highlights the confirm password field in the UI
+    path: ['confirmPassword'],
+  })
+  // 🌲 Super Refine: Enforce name requirements ONLY if it's a fresh signup
+  .superRefine((data, ctx) => {
+    // If one name field is provided, we assume they are attempting a full registration track
+    const isAttemptingNameRegistration =
+      (data.firstName && data.firstName.length > 0) || (data.lastName && data.lastName.length > 0);
+
+    if (isAttemptingNameRegistration) {
+      if (!data.firstName || data.firstName.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'First name must be at least 2 characters',
+          path: ['firstName'],
+        });
+      }
+      if (!data.lastName || data.lastName.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Last name must be at least 2 characters',
+          path: ['lastName'],
+        });
+      }
+    }
   });
 
 export type FinalizeRegistrationDto = z.infer<typeof finalizeRegistrationSchema>;

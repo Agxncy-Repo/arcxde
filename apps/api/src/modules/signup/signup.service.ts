@@ -19,46 +19,50 @@ export class SignupService {
   async initializeMagicLinkSignup(body: { email: string }) {
     const formattedEmail = body.email.trim().toLowerCase();
 
-    // 1. Check for existing users
+    // 1. Scan for an existing lazy-provisioned or complete user record
     const existingUser = await this.prisma.user.findUnique({
       where: { email: formattedEmail },
     });
 
     if (existingUser) {
-      // Flow A: If they are fully onboarded, send a regular Login Magic Link
-      if (existingUser.onboardingCompleted) {
+      // Check if they have a local EMAIL identity record
+      const hasEmailIdentity = await this.prisma.identity.findFirst({
+        where: {
+          userId: existingUser.id,
+          provider: 'EMAIL_PASSWORD', // Adjust string to match your schema's enum/value
+        },
+      });
+
+      // Flow A: User has completed their credentials -> Send a LOGIN magic link
+      if (existingUser.registrationCompleted && hasEmailIdentity) {
         await this.verificationService.sendMagicLinkEmail(existingUser.id, formattedEmail, 'LOGIN');
-        return { 
-          status: 'EXISTING_USER_LINK_SENT', 
-        };
+      } else {
+        // Flow C: User dropped out before creating a password -> Send a SIGNUP magic link
+        // or They exist via other Auth methods but have NO email identity record yet, so we treat them as a SIGNUP flow to complete their registration.
+        await this.verificationService.sendMagicLinkEmail(
+          existingUser.id,
+          formattedEmail,
+          'SIGNUP',
+        );
       }
-      
-      // Flow B: If they are an unfinished user, reuse the record and send a fresh token
-      await this.verificationService.sendMagicLinkEmail(existingUser.id, formattedEmail, 'SIGNUP');
-      return {
-        status: 'PENDING_VERIFICATION_LINK_SENT',
-        userId: existingUser.id,
-      };
+
+      return { success: true };
     }
 
-    // 2. Flow C: Fresh User -> Lazy-provision the record immediately
+    // Flow D: Complete Stranger -> Lazy-provision the row immediately & send SIGNUP layout email
     const newUser = await this.prisma.user.create({
       data: {
         email: formattedEmail,
         emailVerified: false,
+        registrationCompleted: false,
         onboardingCompleted: false,
       },
     });
 
     await this.verificationService.sendMagicLinkEmail(newUser.id, formattedEmail, 'SIGNUP');
-    
-    return { 
-      status: 'LINK_SENT', 
-      userId: newUser.id,
-    };
-  }
 
-  
+    return { success: true };
+  }
 
   // Password entry at last step after email verification, identity evaluation, and transient state validation
   async completeUserRegistration(body: FinalizeRegistrationDto) {
@@ -70,19 +74,36 @@ export class SignupService {
     const formattedEmail = activeSession.email;
 
     // 2. Map and resolve the identity footprint
-    const normalizedProfile = this.mapSignupToNormalizedProfile(formattedEmail, firstName, lastName);
+    const normalizedProfile = this.mapSignupToNormalizedProfile(
+      formattedEmail,
+      firstName ?? '',
+      lastName ?? '',
+    );
     const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
 
+    const isValidSessionState =
+      identityResolution.type === 'EXISTING_USER_NO_IDENTITY' ||
+      identityResolution.type === 'EXISTING_IDENTITY';
     // 3. Evaluate identity states using your resolver outputs
-    if (identityResolution.type === 'EXISTING_IDENTITY' && identityResolution.provider === 'EMAIL_PASSWORD' ) {
-      throw new BadRequestException('An account with this email address already exists.');
+    if (!isValidSessionState) {
+      throw new BadRequestException(
+        'Registration session expired or user identity not found. Please start over.',
+      );
     }
 
-    // Double-check fallback: It should ALWAYS find the lazy-provisioned user row by now
-    if (identityResolution.type !== 'EXISTING_USER_NO_IDENTITY') {
-      throw new BadRequestException(
-        'Registration session expired or user record not found. Please start over.',
-      );
+    // 💡 Then handle the password identity check we built earlier:
+    if (identityResolution.type === 'EXISTING_IDENTITY') {
+      const passwordIdentity = await this.prisma.identity.findFirst({
+        where: {
+          userId: identityResolution.userId,
+          provider: 'EMAIL_PASSWORD',
+        },
+      });
+
+      // Only throw an error if an EMAIL_PASSWORD track already exists and has a password
+      if (passwordIdentity && passwordIdentity.passwordHash) {
+        throw new BadRequestException('An account with this email address already exists.');
+      }
     }
 
     // Hash the password cleanly using argon2
@@ -91,8 +112,21 @@ export class SignupService {
     // 4. Execute Core Identity Write Transaction
     const updatedUser = await this.prisma.$transaction(async (tx) => {
       // A. Attach the email/password authentication identity to the existing user row
-      await tx.identity.create({
-        data: {
+      // This handles the cross-linking perfectly if they started via OAuth first!
+      await tx.identity.upsert({
+        where: {
+          // Assumes you have a compound unique constraint on userId and provider in schema.prisma:
+          // @@unique([userId, provider])
+          userId_provider: {
+            userId: identityResolution.userId,
+            provider: 'EMAIL_PASSWORD',
+          },
+        },
+        update: {
+          passwordHash,
+          providerId: formattedEmail,
+        },
+        create: {
           userId: identityResolution.userId,
           provider: 'EMAIL_PASSWORD',
           providerId: formattedEmail,
@@ -105,6 +139,7 @@ export class SignupService {
         where: { id: identityResolution.userId },
         data: {
           fullName: normalizedProfile.fullName,
+          registrationCompleted: true,
         },
         select: {
           id: true,
@@ -144,5 +179,4 @@ export class SignupService {
       fullName: `${firstName.trim()} ${lastName.trim()}`,
     };
   }
- 
 }

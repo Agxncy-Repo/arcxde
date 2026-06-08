@@ -22,9 +22,12 @@ export class EmailVerificationService {
     private readonly emailService: EmailService,
   ) {}
 
-  
   // Verifies the secure URL token string and transitions the user to an active onboarding session
-  async verifyMagicLink(token: string): Promise<{ email: string; registrationToken: string }> {
+  async verifyMagicLink(token: string): Promise<{
+    email: string;
+    registrationToken: string;
+    status: 'NEW_USER' | 'PENDING_ONBOARDING' | 'PENDING_REGISTRATION' | 'EXISTING_USER';
+  }> {
     // 1. Fetch the metadata directly via the unique secure token string
     const record = await this.prisma.verificationToken.findUnique({
       where: { token },
@@ -51,6 +54,45 @@ export class EmailVerificationService {
       );
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: record.userId },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User record associated with this link no longer exists.');
+    }
+
+    // LOOKUP: Check if they actually have a local credential identity record
+    const hasEmailIdentity = await this.prisma.identity.findFirst({
+      where: {
+        userId: user.id,
+        provider: 'EMAIL_PASSWORD',
+      },
+    });
+
+    // 🌲 Determine lifecycle status state matrix
+    let status: 'NEW_USER' | 'PENDING_ONBOARDING' | 'PENDING_REGISTRATION' | 'EXISTING_USER' =
+      'NEW_USER';
+
+    if (hasEmailIdentity) {
+      // 💡 TRACK A: Traditional credentials user
+      if (user.onboardingCompleted) {
+        status = 'EXISTING_USER';
+      } else {
+        status = 'PENDING_ONBOARDING';
+      }
+    } else {
+      // 💡 TRACK B: No email identity exists yet
+      if (user.registrationCompleted) {
+        // 🚀 THIS IS YOU: They exist via Google, profile is already built!
+        // They are coming through to strictly LINK their account with a password.
+        status = 'PENDING_REGISTRATION';
+      } else {
+        // A completely fresh sign-up who has never completed registration or OAuth
+        status = 'NEW_USER';
+      }
+    }
+
     // 💡 If it gets past these checks, the link is valid!
     const formattedEmail = record.email.trim().toLowerCase();
     const sessionExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30-minute workspace onboarding window
@@ -62,12 +104,31 @@ export class EmailVerificationService {
       await this.prisma.$transaction(async (tx) => {
         // 1. Promote the actual user record to email_verified: true
         await tx.user.update({
-          where: { id: record.userId }, 
-          data: { 
+          where: { id: record.userId },
+          data: {
             emailVerified: true,
             emailVerifiedAt: new Date(),
           },
         });
+
+        // LAZY-CREATE EMAIL IDENTITY: Link the local track if it's missing
+        const existingEmailIdentity = await tx.identity.findFirst({
+          where: {
+            userId: record.userId,
+            provider: 'EMAIL_PASSWORD',
+          },
+        });
+
+        if (!existingEmailIdentity) {
+          await tx.identity.create({
+            data: {
+              userId: record.userId,
+              provider: 'EMAIL_PASSWORD',
+              providerId: formattedEmail, // Storing email as the provider unique identifier
+              providerEmail: formattedEmail, // Store the email for reference, even if it's redundant with providerId
+            },
+          });
+        }
 
         // 2. Wipe out ANY existing registration sessions for this email address.
         // This clears out stale unique tokens completely and guarantees no constraint conflicts.
@@ -93,7 +154,7 @@ export class EmailVerificationService {
       });
 
       // Return the secure temporary registration token to the controller layer
-      return { email: formattedEmail, registrationToken };
+      return { email: formattedEmail, registrationToken, status };
     } catch (transactionError: any) {
       // If the token was valid but the database transaction choked due to a dead-lock or concurrency fail,
       // log an attempt against the token to protect the route from endless spamming.
@@ -106,9 +167,13 @@ export class EmailVerificationService {
     }
   }
 
-  async sendMagicLinkEmail(userId: string, email: string, purpose: 'SIGNUP' | 'LOGIN'): Promise<void> {
+  async sendMagicLinkEmail(
+    userId: string,
+    email: string,
+    purpose: 'SIGNUP' | 'LOGIN',
+  ): Promise<void> {
     const formattedEmail = email.trim().toLowerCase();
-    
+
     //  Production Rate-Limit Check: Max links per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recentLinksCount = await this.prisma.verificationToken.count({
@@ -124,7 +189,7 @@ export class EmailVerificationService {
 
     // 1. Generate a 32-byte secure hex string token
     const magicToken = crypto.randomBytes(32).toString('hex');
-    
+
     // 2. Set token lifespan (e.g., 30 minutes)
     const tokenLifespanMinutes = 30;
     const expiresAt = new Date(Date.now() + tokenLifespanMinutes * 60 * 1000);
@@ -132,7 +197,7 @@ export class EmailVerificationService {
     // 3. Atomically upsert the verification token linked to this user ID
     // This cleans up any old token if they click "resend" multiple times
     await this.prisma.verificationToken.upsert({
-      where: { userId},
+      where: { userId },
       update: {
         token: magicToken,
         expiresAt,
