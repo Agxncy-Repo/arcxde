@@ -3,10 +3,10 @@
  *
  * Thin HTTP layer:
  * - Validates inputs with @ZodBody / @ZodQuery / @ZodParam (single source of
- * truth: @app/contracts).
+ *   truth: @app/contracts).
  * - Calls the service. Does NOT contain business logic.
  * - Lets DomainError propagate; the global HttpExceptionFilter takes care
- * of mapping to the envelope.
+ *   of mapping to the envelope.
  *
  * Response shapes intentionally match the contract envelopes in
  * docs/conventions/api-design.md.
@@ -54,6 +54,7 @@ export class AuthController {
   // Callback endpoint that Google redirects to after user consents; Passport strategy processes the response and populates req.user
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleAuthRedirect(@Req() req: any, @Res() res: any): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
@@ -79,11 +80,12 @@ export class AuthController {
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
       return res.redirect(finalRedirectUrl, 302);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Direct print to screen if something else breaks inside the service loop
+      const message = error instanceof Error ? error.message : String(error);
       return res.status(500).send({
         error: 'Redirect Loop Exception',
-        message: error?.message || String(error),
+        message,
       });
     }
   }
@@ -94,10 +96,11 @@ export class AuthController {
   @ApiBearerAuth() // Indicates this endpoint requires a bearer token for Swagger documentation
   @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async logout(@Req() req: any, @Res() res: any): Promise<void> {
     try {
       // Extract the session ID attached by JwtStrategy
-      const sessionId = req.user.sessionId;
+      const sessionId = (req.user as { sessionId?: string }).sessionId;
 
       if (!sessionId) {
         throw new Error('No active session token identifier found in request.');
@@ -115,10 +118,11 @@ export class AuthController {
         message: 'Logged out successfully. Token session has been revoked.',
         sessionId: sessionId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return res.status(400).send({
         error: 'Logout Error',
-        message: error?.message || String(error),
+        message,
       });
     }
   }

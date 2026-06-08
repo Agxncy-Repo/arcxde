@@ -31,16 +31,21 @@ async function bootstrap(): Promise<void> {
   // ---- Passport-Fastify Compatibility Hook ----
   // This shims Express-style methods onto Fastify's response lifecycle
   // so that legacy Passport strategies can safely execute 302 redirects.
-  fastify.getInstance().addHook('onRequest', (req: any, res: any, done: any) => {
-    res.setHeader = (key: string, value: any) => {
+  fastify.getInstance().addHook('onRequest', (req, res, done) => {
+    const shim = res as unknown as {
+      setHeader: (key: string, value: string | number | string[]) => typeof shim;
+      end: (data?: string | Buffer) => typeof shim;
+    };
+    shim.setHeader = (key: string, value: string | number | string[]) => {
       res.raw.setHeader(key, value);
-      return res;
+      return shim;
     };
-    res.end = (data?: any) => {
+    shim.end = (data?: string | Buffer) => {
       res.raw.end(data);
-      return res;
+      return shim;
     };
-    req.res = res;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (req as unknown as Record<string, unknown>).res = shim;
     done();
   });
 

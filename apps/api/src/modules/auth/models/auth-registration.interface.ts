@@ -1,4 +1,4 @@
-import { IdentityProvider } from '@prisma/client';
+import type { IdentityProvider } from '@prisma/client';
 export interface CreateIndividualInput {
   email: string;
   passwordHash: string | null;
@@ -20,7 +20,7 @@ export interface UpsertUserIdentityAndMembershipData {
 export interface NormalizedProfile {
   provider: IdentityProvider;
   providerId: string;
-  email: string; // Nullable to securely support privacy cloaks like Apple Sign-In
+  email: string | null; // Nullable to securely support privacy cloaks like Apple Sign-In
   emailVerified: boolean;
   fullName: string | null;
   avatarUrl?: string | null;

@@ -135,7 +135,7 @@ export class SignupService {
       });
 
       // B. Save concatenated profile fields and flip onboarding completion flags
-      return await tx.user.update({
+      return tx.user.update({
         where: { id: identityResolution.userId },
         data: {
           fullName: normalizedProfile.fullName,

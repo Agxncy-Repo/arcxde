@@ -18,7 +18,7 @@ export class AuthService {
 
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use
   async registerOrLoginWithProvider(profile: NormalizedProfile) {
-    var user = null;
+    let user = null;
     // 1. Attempt to resolve the incoming profile to an existing user identity or account
     const identityResult = await this.resolveAccount(profile);
 
@@ -46,7 +46,7 @@ export class AuthService {
     // 2. With a resolved user context, generate a new authenticated session with token rotation
     const tokens = await this.createAuthenticatedSession(identityResult.userId);
 
-    if (!identityResult.isNewUser) {
+    if (!identityResult.isNewUser && profile.email) {
       user = await this.authRepository.findUserByEmail(profile.email);
     }
     // 3. Return the generated tokens along with a flag indicating if this is a new user for frontend onboarding flows
@@ -172,7 +172,9 @@ export class AuthService {
     const session = await this.authRepository.findSessionByHash(currentHash);
 
     if (!session || session.expiresAt < new Date()) {
-      if (session) await this.authRepository.deleteSession(session.id);
+      if (session) {
+        await this.authRepository.deleteSession(session.id);
+      }
       throw new UnauthorizedException('Session has expired or is invalid.');
     }
 
@@ -199,8 +201,8 @@ export class AuthService {
     const accessSecret = process.env.JWT_ACCESS_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
 
-    const accessSecretExpiresIn = (process.env.JWT_ACCESS_TTL || '15m') as any;
-    const refreshSecretExpiresIn = (process.env.JWT_REFRESH_TTL || '7d') as any;
+    const accessSecretExpiresIn = (process.env.JWT_ACCESS_TTL ?? '15m') as never;
+    const refreshSecretExpiresIn = (process.env.JWT_REFRESH_TTL ?? '7d') as never;
 
     if (!accessSecret || !refreshSecret) {
       throw new Error(

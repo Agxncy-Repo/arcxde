@@ -91,7 +91,9 @@ export class OnboardingRepository {
         select: { id: true },
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (user) return user.id as string;
+      if (user) {
+        return user.id;
+      }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -103,7 +105,7 @@ export class OnboardingRepository {
       select: { id: true },
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return created.id as string;
+    return created.id;
   }
 
   /** Persists the onboarding session and all answers. */
@@ -124,14 +126,14 @@ export class OnboardingRepository {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         where: {
           onboardingId_questionId: {
-            onboardingId: onboarding.id as string,
+            onboardingId: onboarding.id,
             questionId: ans.questionId,
           },
         },
         update: { selectedOption: ans.selectedOption, selectedWeight: ans.selectedWeight },
         create: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          onboardingId: onboarding.id as string,
+          onboardingId: onboarding.id,
           questionId: ans.questionId,
           selectedOption: ans.selectedOption,
           selectedWeight: ans.selectedWeight,

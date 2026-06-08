@@ -20,7 +20,7 @@ export class UsersController {
   ) // 100% Automated & In Sync
   @ApiBearerAuth()
   async completeOnboarding(
-    @Req() req: any,
+    @Req() req: { user: { id: string } },
     @ZodBody(completeOnboardingSchema) body: CompleteOnboardingDto,
   ) {
     // Passport attaches the parsed token payload to req.user (usually containing sub/id)
