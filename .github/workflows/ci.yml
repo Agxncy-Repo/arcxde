@@ -52,6 +52,7 @@ jobs:
         run: pnpm lint
 
       - name: Typecheck
+        if: always() #Forces typecheck to run even if lint/format check fail
         run: pnpm typecheck
 
       - name: Commit-message lint (PR only)
