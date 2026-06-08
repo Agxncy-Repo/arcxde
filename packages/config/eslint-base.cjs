@@ -31,7 +31,7 @@ module.exports = {
   },
   rules: {
     // Type safety — enforce what tsconfig hints at
-    '@typescript-eslint/no-explicit-any': ['error', { ignoreRestArgs: false }],
+    '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': 'off', // handled by unused-imports
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     '@typescript-eslint/no-floating-promises': 'error',

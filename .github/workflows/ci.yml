@@ -45,6 +45,9 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: Prisma generate
+        run: pnpm db:generate
+
       - name: Lint
         run: pnpm lint
 
