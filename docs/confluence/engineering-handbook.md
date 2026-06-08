@@ -48,15 +48,15 @@ Bring conviction. Bring evidence. Update when better evidence appears. Engineers
 
 ### Default to async, written, public
 
-| Channel | Use for |
-|---|---|
-| **Pull requests** | All code-level discussion. Code review is the primary technical conversation. |
-| **GitHub Issues** | Bugs, feature work, technical debt. One issue = one outcome. |
-| **ADRs** | Decisions that future engineers will need to understand. Immutable once accepted. |
+| Channel                     | Use for                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| **Pull requests**           | All code-level discussion. Code review is the primary technical conversation.                 |
+| **GitHub Issues**           | Bugs, feature work, technical debt. One issue = one outcome.                                  |
+| **ADRs**                    | Decisions that future engineers will need to understand. Immutable once accepted.             |
 | **Slack `#eng-*` channels** | Real-time but searchable. Default to public channels; DMs only for genuinely personal things. |
-| **Docs in this repo** | Anything that's true today and should still be true in 6 months. |
-| **Confluence / Notion** | Process docs that span engineering + non-engineering. |
-| **Meetings** | Last resort. See below. |
+| **Docs in this repo**       | Anything that's true today and should still be true in 6 months.                              |
+| **Confluence / Notion**     | Process docs that span engineering + non-engineering.                                         |
+| **Meetings**                | Last resort. See below.                                                                       |
 
 ### Meetings
 
@@ -70,14 +70,14 @@ Defaults:
 
 Standing meetings the engineering org keeps:
 
-| Meeting | Cadence | Purpose |
-|---|---|---|
-| Team standup | Daily, 10 min | Blockers only; not status theatre |
-| Sprint planning / weekly planning | Weekly, 30 min | What ships this week |
-| Engineering all-hands | Bi-weekly | Cross-team visibility, roadmap |
-| Incident review | As needed, within 5 business days of P1 | Blameless review (see incident-response) |
-| Architecture review | Bi-weekly, opt-in | ADRs needing discussion |
-| 1:1 with manager | Weekly, 30 min | Career, blockers, feedback |
+| Meeting                           | Cadence                                 | Purpose                                  |
+| --------------------------------- | --------------------------------------- | ---------------------------------------- |
+| Team standup                      | Daily, 10 min                           | Blockers only; not status theatre        |
+| Sprint planning / weekly planning | Weekly, 30 min                          | What ships this week                     |
+| Engineering all-hands             | Bi-weekly                               | Cross-team visibility, roadmap           |
+| Incident review                   | As needed, within 5 business days of P1 | Blameless review (see incident-response) |
+| Architecture review               | Bi-weekly, opt-in                       | ADRs needing discussion                  |
+| 1:1 with manager                  | Weekly, 30 min                          | Career, blockers, feedback               |
 
 ### Response-time expectations
 
@@ -180,13 +180,13 @@ Detailed flow lives in [incident-response.md](./incident-response.md). The cultu
 
 Detailed level definitions live in HR. The shape:
 
-| Level | Scope | Signal |
-|---|---|---|
-| L1 Engineer | Tasks within a service, with guidance | Reliably ships well-defined features |
-| L2 Engineer | Features end-to-end, mostly autonomous | Owns problems, not tasks |
-| L3 Senior | Owns a service or domain | Mentors, raises the bar, called on for design |
-| L4 Staff | Cross-service or cross-team scope | Sets technical direction, multiplier on the org |
-| L5 Principal | Org-wide technical leadership | Defines the shape of what we build |
+| Level        | Scope                                  | Signal                                          |
+| ------------ | -------------------------------------- | ----------------------------------------------- |
+| L1 Engineer  | Tasks within a service, with guidance  | Reliably ships well-defined features            |
+| L2 Engineer  | Features end-to-end, mostly autonomous | Owns problems, not tasks                        |
+| L3 Senior    | Owns a service or domain               | Mentors, raises the bar, called on for design   |
+| L4 Staff     | Cross-service or cross-team scope      | Sets technical direction, multiplier on the org |
+| L5 Principal | Org-wide technical leadership          | Defines the shape of what we build              |
 
 Engineering management is a parallel track, not a promotion from L4.
 

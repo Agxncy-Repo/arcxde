@@ -7,22 +7,22 @@
  * Tailwind v4 — config lives in CSS via @theme. No tailwind.config.ts needed.
  * ========================================================================== */
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ---------- Design tokens (light) ---------- */
 :root {
   /* Surfaces */
-  --background: 36 30% 97%;          /* warm off-white */
-  --foreground: 30 10% 12%;          /* warm deep ink */
-  --card: 36 30% 99%;                /* slightly brighter than bg */
+  --background: 36 30% 97%; /* warm off-white */
+  --foreground: 30 10% 12%; /* warm deep ink */
+  --card: 36 30% 99%; /* slightly brighter than bg */
   --card-foreground: 30 10% 12%;
   --popover: 36 30% 99%;
   --popover-foreground: 30 10% 12%;
 
   /* Brand */
-  --primary: 18 62% 42%;             /* terracotta / clay */
+  --primary: 18 62% 42%; /* terracotta / clay */
   --primary-foreground: 36 30% 97%;
-  --primary-soft: 18 55% 92%;        /* primary-tinted surface */
+  --primary-soft: 18 55% 92%; /* primary-tinted surface */
 
   /* Neutrals */
   --secondary: 36 18% 92%;
@@ -45,7 +45,7 @@
   /* Lines */
   --border: 30 12% 86%;
   --input: 30 12% 86%;
-  --ring: 18 62% 42%;                /* matches primary — warm focus */
+  --ring: 18 62% 42%; /* matches primary — warm focus */
 
   /* Geometry */
   --radius: 0.625rem;
@@ -129,7 +129,7 @@
 
   /* Typography — Suisse Int'l is the primary font for the design system */
   --font-sans: "Suisse Int'l", system-ui, -apple-system, sans-serif;
-  --font-serif: "Suisse Int'l", Georgia, "Times New Roman", serif;
+  --font-serif: "Suisse Int'l", Georgia, 'Times New Roman', serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -150,7 +150,7 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01", "ss03";
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
     font-synthesis: none;
   }
 
@@ -176,8 +176,12 @@
     background-image:
       radial-gradient(hsl(var(--foreground) / 0.025) 1px, transparent 1px),
       radial-gradient(hsl(var(--foreground) / 0.015) 1px, transparent 1px);
-    background-size: 16px 16px, 24px 24px;
-    background-position: 0 0, 8px 12px;
+    background-size:
+      16px 16px,
+      24px 24px;
+    background-position:
+      0 0,
+      8px 12px;
   }
 
   /* Page-load reveal — staggered via animation-delay on children */

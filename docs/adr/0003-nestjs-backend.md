@@ -10,6 +10,7 @@
 ## Context
 
 We need a backend framework that:
+
 - Is TypeScript-native.
 - Has opinionated structure so a 10-person team doesn't reinvent project layout each feature.
 - Supports dependency injection (testability).
@@ -19,6 +20,7 @@ We need a backend framework that:
 ## Decision
 
 We will use **NestJS** as the backend framework, with:
+
 - Fastify adapter (over Express) for performance.
 - Custom Zod-based validation pipe (not class-validator) to share schemas with the frontend.
 - BullMQ for queues.
@@ -27,6 +29,7 @@ We will use **NestJS** as the backend framework, with:
 ## Consequences
 
 ### Positive
+
 - Strong conventions reduce bikeshedding on file layout.
 - DI makes services trivially unit-testable.
 - Rich decorator ecosystem (`@UseGuards`, `@UseInterceptors`) makes cross-cutting concerns declarative.
@@ -34,26 +37,31 @@ We will use **NestJS** as the backend framework, with:
 - Built-in support for microservice transport when we eventually extract.
 
 ### Negative
+
 - Decorator-heavy syntax has a learning curve for engineers from Express/Fastify backgrounds.
 - More magic than a hand-rolled framework. Mitigation: enforce constructor injection only, no `forwardRef` without a comment.
 - Class-based — slightly more ceremony than functional alternatives.
 
 ### Neutral
+
 - Choosing Fastify adapter means we can't use Express middleware that depends on the raw `req`/`res` shape without wrapping.
 
 ## Alternatives considered
 
 ### Express (or Fastify) hand-rolled
+
 - Pros: full control, minimal magic, fast.
 - Cons: every team reinvents structure, DI is bolt-on, testability suffers.
 - Verdict: rejected — discipline doesn't scale across team turnover.
 
 ### Hono / tRPC
+
 - Pros: lightweight, end-to-end types with tRPC.
 - Cons: tRPC couples FE to BE in ways that make non-web clients harder later; smaller ecosystems for queue/cron/RBAC.
 - Verdict: rejected — we want REST + OpenAPI as a long-lived contract.
 
 ### Adonis
+
 - Pros: opinionated, full-stack, MVC.
 - Cons: smaller community, fewer engineers familiar with it.
 - Verdict: rejected on talent pool grounds.
