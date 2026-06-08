@@ -1,33 +1,94 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useVerifySignupToken } from '@/lib/hooks/useAuth';
 import { SlantEgg } from '@/components/slant-egg';
 
 const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
 
+const VERIFICATION_COPY = {
+  LOADING: {
+    title: 'Checking your link...',
+    description: 'Please wait while we validate your secure access credentials.',
+    buttonText: 'Processing...',
+  },
+  NEW_USER: {
+    title: 'Verify your email address',
+    description:
+      'Click the button below to confirm your account creation and continue setting up your profile workspace.',
+    buttonText: 'Confirm & Create Account',
+  },
+  RETURNING_USER: {
+    title: 'Confirm your secure login',
+    description:
+      'Click the button below to complete your secure sign-in and jump back into your workspace.',
+    buttonText: 'Confirm & Sign In',
+  },
+};
+
 function VerifyLandingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get('token'); // Grab token from URL query string
+  const token = searchParams.get('token');
 
   const verifyTokenMutation = useVerifySignupToken();
 
-  const handleConfirmVerification = () => {
+  // Cache response properties in local component state to handle the delayed button redirection
+  const [verificationStatus, setVerificationStatus] = useState<
+    'NEW_USER' | 'PENDING_ONBOARDING' | 'PENDING_REGISTRATION' | 'EXISTING_USER' | null
+  >(null);
+  const [cachedRegToken, setCachedRegToken] = useState<string>('');
+
+  // 1. 🚀 Automatically verify the link on mount to determine user status
+  useEffect(() => {
     if (!token) return;
 
     verifyTokenMutation.mutate(
       { token },
       {
-        onSuccess: (response: { email: string; registrationToken: string }) => {
-          const registrationToken = response.registrationToken;
-
-          router.push(`/signup/finalize?token=${registrationToken}`);
+        onSuccess: (response: {
+          email: string;
+          registrationToken: string;
+          status: 'NEW_USER' | 'PENDING_ONBOARDING' | 'PENDING_REGISTRATION' | 'EXISTING_USER';
+        }) => {
+          // Commit parameters to component state instead of routing instantly!
+          setVerificationStatus(response.status);
+          setCachedRegToken(response.registrationToken);
         },
       },
     );
+    // Explicitly disabling exhaustive-deps so it runs exactly once when token is loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // 2. 🎯 Let the button click execute the actual routing track
+  const handleProceedRouting = () => {
+    if (!verificationStatus) return;
+
+    if (verificationStatus === 'EXISTING_USER') {
+      router.push('/dashboard');
+    } else if (verificationStatus === 'PENDING_ONBOARDING') {
+      router.push(`/signup/role?token=${cachedRegToken}`);
+    } else if (verificationStatus === 'PENDING_REGISTRATION' || verificationStatus === 'NEW_USER') {
+      router.push(`/signup/registration?token=${cachedRegToken}&status=${verificationStatus}`);
+    }
   };
+
+  // 3. Resolve display text layouts dynamically based on state
+  let currentCopy = VERIFICATION_COPY.LOADING;
+
+  if (verificationStatus === 'NEW_USER' || verificationStatus === 'PENDING_REGISTRATION') {
+    currentCopy = VERIFICATION_COPY.NEW_USER;
+  } else if (
+    verificationStatus === 'PENDING_ONBOARDING' ||
+    verificationStatus === 'EXISTING_USER'
+  ) {
+    currentCopy = VERIFICATION_COPY.RETURNING_USER;
+  }
+
+  // Disable button if token is missing, request is flying, or we haven't resolved status yet
+  const isButtonDisabled = !token || verifyTokenMutation.isPending || !verificationStatus;
 
   return (
     <div className="min-h-screen bg-[#222] flex flex-col items-center justify-center px-4">
@@ -45,7 +106,7 @@ function VerifyLandingContent() {
             marginBottom: 16,
           }}
         >
-          Verify your email address
+          {currentCopy.title}
         </h1>
         <p
           style={{
@@ -57,13 +118,12 @@ function VerifyLandingContent() {
             marginBottom: 32,
           }}
         >
-          Click the button below to confirm your account creation and continue setting up your
-          profile workspace.
+          {currentCopy.description}
         </p>
 
         <button
-          disabled={!token || verifyTokenMutation.isPending}
-          onClick={handleConfirmVerification}
+          disabled={isButtonDisabled}
+          onClick={handleProceedRouting}
           style={{
             width: 240,
             height: 48,
@@ -74,12 +134,12 @@ function VerifyLandingContent() {
             fontFamily: FONT,
             fontSize: 16,
             fontWeight: 500,
-            cursor: token && !verifyTokenMutation.isPending ? 'pointer' : 'default',
-            opacity: token && !verifyTokenMutation.isPending ? 1 : 0.5,
+            cursor: !isButtonDisabled ? 'pointer' : 'default',
+            opacity: !isButtonDisabled ? 1 : 0.5,
             transition: 'opacity 0.2s ease',
           }}
         >
-          {verifyTokenMutation.isPending ? 'Verifying...' : 'Confirm Verification'}
+          {verifyTokenMutation.isPending ? 'Processing...' : currentCopy.buttonText}
         </button>
 
         {verifyTokenMutation.isError && (
@@ -98,7 +158,15 @@ export default function VerifyLandingPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#222] flex items-center justify-center">
-          <p style={{ fontFamily: "'Suisse Int\\'l', system-ui, sans-serif", color: 'white', fontSize: 18 }}>Loading...</p>
+          <p
+            style={{
+              fontFamily: "'Suisse Int\\'l', system-ui, sans-serif",
+              color: 'white',
+              fontSize: 18,
+            }}
+          >
+            Loading...
+          </p>
         </div>
       }
     >

@@ -32,6 +32,12 @@ export interface SessionCreationData {
   expiresAt: Date;
 }
 
+export interface UpdateUserFlagsInput {
+  emailVerified?: boolean;
+  registrationCompleted?: boolean;
+  onboardingCompleted?: boolean;
+}
+
 export interface WorkspaceMatchResult {
   organizationId: string;
 }

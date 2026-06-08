@@ -2,9 +2,10 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationService } from '../email/verification/email-verification.service.js';
 import { IdentityResolver } from '../auth/identity/identity.resolver.js';
-import { IndividualSignupBody, PasswordSignupSchema } from '@app/contracts';
-import { NormalizedProfile } from '../auth/models/auth-registration.interface.js';
 import * as argon2 from 'argon2';
+import { AuthService } from '../auth/auth.service';
+import { FinalizeRegistrationDto } from '@app/contracts';
+import { NormalizedProfile } from '../auth/models/auth-registration.interface';
 
 @Injectable()
 export class SignupService {
@@ -12,95 +13,170 @@ export class SignupService {
     private readonly prisma: PrismaService,
     private readonly verificationService: EmailVerificationService,
     private readonly identityResolver: IdentityResolver,
+    private readonly authService: AuthService,
   ) {}
 
-  // Password entry at last step after email verification, identity evaluation, and transient state validation
-  async finalizePasswordSignup(body: PasswordSignupSchema) {
-    const { email, password } = body;
-    const formattedEmail = email.trim().toLowerCase();
+  async initializeMagicLinkSignup(body: { email: string }) {
+    const formattedEmail = body.email.trim().toLowerCase();
 
-    // 1. Strict guard barrier checking the short-lived State Layer
-    await this.verificationService.validateActiveSessionOrThrow(formattedEmail);
+    // 1. Scan for an existing lazy-provisioned or complete user record
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: formattedEmail },
+    });
 
-    // 2. Identity Layer: Profile evaluation and validation
-    const normalizedProfile = this.mapSignupToNormalizedProfile(body);
-    const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
-
-    if (
-      identityResolution.type === 'EXISTING_IDENTITY' &&
-      identityResolution.provider === 'EMAIL_PASSWORD'
-    ) {
-      throw new BadRequestException('Password account already exists.');
-    }
-
-    const passwordHash = await argon2.hash(password);
-
-    // 3. Execute Core Identity Write Transaction
-    const targetUserId = await this.prisma.$transaction(async (tx) => {
-      if (identityResolution.type === 'EXISTING_USER_NO_IDENTITY') {
-        await tx.identity.create({
-          data: {
-            userId: identityResolution.userId,
-            provider: 'EMAIL_PASSWORD',
-            providerId: formattedEmail,
-            passwordHash,
-          },
-        });
-
-        return identityResolution.userId;
-      }
-
-      const newUser = await tx.user.create({
-        data: {
-          email: formattedEmail,
-          fullName: normalizedProfile.fullName,
-          identities: {
-            create: {
-              provider: 'EMAIL_PASSWORD',
-              providerId: formattedEmail,
-              passwordHash,
-            },
-          },
+    if (existingUser) {
+      // Check if they have a local EMAIL identity record
+      const hasEmailIdentity = await this.prisma.identity.findFirst({
+        where: {
+          userId: existingUser.id,
+          provider: 'EMAIL_PASSWORD', // Adjust string to match your schema's enum/value
         },
       });
-      return newUser.id;
+
+      // Flow A: User has completed their credentials -> Send a LOGIN magic link
+      if (existingUser.registrationCompleted && hasEmailIdentity) {
+        await this.verificationService.sendMagicLinkEmail(existingUser.id, formattedEmail, 'LOGIN');
+      } else {
+        // Flow C: User dropped out before creating a password -> Send a SIGNUP magic link
+        // or They exist via other Auth methods but have NO email identity record yet, so we treat them as a SIGNUP flow to complete their registration.
+        await this.verificationService.sendMagicLinkEmail(
+          existingUser.id,
+          formattedEmail,
+          'SIGNUP',
+        );
+      }
+
+      return { success: true };
+    }
+
+    // Flow D: Complete Stranger -> Lazy-provision the row immediately & send SIGNUP layout email
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: formattedEmail,
+        emailVerified: false,
+        registrationCompleted: false,
+        onboardingCompleted: false,
+      },
     });
-    // 4. Burn the transient state session after a successful creation write
+
+    await this.verificationService.sendMagicLinkEmail(newUser.id, formattedEmail, 'SIGNUP');
+
+    return { success: true };
+  }
+
+  // Password entry at last step after email verification, identity evaluation, and transient state validation
+  async completeUserRegistration(body: FinalizeRegistrationDto) {
+    const { token, password, firstName, lastName } = body;
+
+    // 1. Strict Guard Barrier: Look up and validate the active session by its voucher token
+    // This returns the verified email bound to this specific onboarding session
+    const activeSession = await this.verificationService.validateActiveSessionOrThrow(token);
+    const formattedEmail = activeSession.email;
+
+    // 2. Map and resolve the identity footprint
+    const normalizedProfile = this.mapSignupToNormalizedProfile(
+      formattedEmail,
+      firstName ?? '',
+      lastName ?? '',
+    );
+    const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
+
+    const isValidSessionState =
+      identityResolution.type === 'EXISTING_USER_NO_IDENTITY' ||
+      identityResolution.type === 'EXISTING_IDENTITY';
+    // 3. Evaluate identity states using your resolver outputs
+    if (!isValidSessionState) {
+      throw new BadRequestException(
+        'Registration session expired or user identity not found. Please start over.',
+      );
+    }
+
+    // 💡 Then handle the password identity check we built earlier:
+    if (identityResolution.type === 'EXISTING_IDENTITY') {
+      const passwordIdentity = await this.prisma.identity.findFirst({
+        where: {
+          userId: identityResolution.userId,
+          provider: 'EMAIL_PASSWORD',
+        },
+      });
+
+      // Only throw an error if an EMAIL_PASSWORD track already exists and has a password
+      if (passwordIdentity && passwordIdentity.passwordHash) {
+        throw new BadRequestException('An account with this email address already exists.');
+      }
+    }
+
+    // Hash the password cleanly using argon2
+    const passwordHash = await argon2.hash(password);
+
+    // 4. Execute Core Identity Write Transaction
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      // A. Attach the email/password authentication identity to the existing user row
+      // This handles the cross-linking perfectly if they started via OAuth first!
+      await tx.identity.upsert({
+        where: {
+          // Assumes you have a compound unique constraint on userId and provider in schema.prisma:
+          // @@unique([userId, provider])
+          userId_provider: {
+            userId: identityResolution.userId,
+            provider: 'EMAIL_PASSWORD',
+          },
+        },
+        update: {
+          passwordHash,
+          providerId: formattedEmail,
+        },
+        create: {
+          userId: identityResolution.userId,
+          provider: 'EMAIL_PASSWORD',
+          providerId: formattedEmail,
+          passwordHash,
+        },
+      });
+
+      // B. Save concatenated profile fields and flip onboarding completion flags
+      return await tx.user.update({
+        where: { id: identityResolution.userId },
+        data: {
+          fullName: normalizedProfile.fullName,
+          registrationCompleted: true,
+        },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          createdAt: true,
+        },
+      });
+    });
+
+    // 5. Burn the temporary onboarding session token state immediately
     await this.verificationService.consumeSession(formattedEmail);
 
-    // 5. Establish session payload and issue tokens
-    return this.createAuthenticatedSession(targetUserId);
+    // 6. Issue full secure authenticated session payload tokens
+    const tokens = await this.authService.createAuthenticatedSession(updatedUser.id);
+
+    return {
+      user: updatedUser,
+      tokens,
+    };
   }
 
   /**
    * Helper mapping strategy to turn a credentials registration payload
    * into an object usable by the global identity layer context.
    */
-  private mapSignupToNormalizedProfile(body: IndividualSignupBody): NormalizedProfile {
-    const formattedEmail = body.email.trim().toLowerCase();
+  private mapSignupToNormalizedProfile(
+    email: string,
+    firstName: string,
+    lastName: string,
+  ): NormalizedProfile {
     return {
       provider: 'EMAIL_PASSWORD',
-      providerId: formattedEmail,
-      email: formattedEmail,
-      emailVerified: true, // They successfully cleared the OTP step before hitting this method
-      fullName:
-        body.firstName && body.lastName
-          ? `${body.firstName.trim()} ${body.lastName.trim()}`
-          : body.firstName || body.lastName || null,
-    };
-  }
-
-  /**
-   * Generates JWT tokens and handles structural downstream application session states.
-   * Replace this placeholder logic with your explicit token generation pipeline.
-   */
-  private async createAuthenticatedSession(
-    userId: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
-    // TODO: Connect this to your existing TokenMintService / JwtService architecture
-    return {
-      accessToken: `mock-access-token-for-${userId}`,
-      refreshToken: `mock-refresh-token-for-${userId}`,
+      providerId: email,
+      email: email,
+      emailVerified: true, // Successfully cleared the Magic Link validation step
+      fullName: `${firstName.trim()} ${lastName.trim()}`,
     };
   }
 }

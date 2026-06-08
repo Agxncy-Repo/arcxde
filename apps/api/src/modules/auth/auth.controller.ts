@@ -12,8 +12,6 @@
  * docs/conventions/api-design.md.
  */
 import {
-  loginWithCredentialsSchema,
-  type LoginWithCredentialsBody,
   tokenRefreshSchema,
   type TokenRefreshBody,
   testEmailSchema,
@@ -43,27 +41,7 @@ export class AuthController {
     private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
-  // --------------- RAW EMAIL SIGNUP --------------- //
-
-
-  //@Post('signup/organization')
-  //async signupOrganization(@ZodBody(organizationSignupBodySchema) body: OrganizationSignupBody) {
-  // body.organization properties match exact schema layout rules
-  //return this.service.registerOrganization(body);
-  //}
-
-  // --------------- RAW EMAIL LOGIN --------------- //
-
-  @Post('login')
-  @ApiZodBody(loginWithCredentialsSchema, 'Authenticates a user with email and password.') //  100% Automated & In Sync
-  async loginWithEmailAndPassword(
-    @ZodBody(loginWithCredentialsSchema) body: LoginWithCredentialsBody,
-  ) {
-    // Input parameters are guaranteed clean and formatted by Zod mapping here
-    const response = await this.service.loginWithEmailAndPassword(body);
-    return { data: response };
-  }
-
+  
   // --------------- GOOGLE OAUTH FLOWS --------------- //
 
   // Endpoint to trigger Google OAuth flow; Passport strategy handles the rest

@@ -7,6 +7,7 @@ import {
   CreateIndividualInput,
   NormalizedProfile,
   SessionCreationData,
+  UpdateUserFlagsInput,
   UpsertUserIdentityAndMembershipData,
   WorkspaceMatchResult,
 } from './models/auth-registration.interface.js';
@@ -34,6 +35,29 @@ export class AuthRepository {
   async findUserByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
+    });
+  }
+  async findUserById(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  async updateUserFlags(id: string, flags: UpdateUserFlagsInput) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        // Mapping fields cleanly.
+        // to email_verified, registration_completed, onboarding_completed
+        ...(flags.emailVerified !== undefined && { emailVerified: flags.emailVerified }),
+        ...(flags.registrationCompleted !== undefined && {
+          registrationCompleted: flags.registrationCompleted,
+        }),
+        ...(flags.onboardingCompleted !== undefined && {
+          onboardingCompleted: flags.onboardingCompleted,
+        }),
+        ...(flags.emailVerified === true && { emailVerifiedAt: new Date() }),
+      },
     });
   }
 
@@ -76,6 +100,7 @@ export class AuthRepository {
             userId: data.userId,
             provider: data.provider,
             providerId: data.providerId,
+            providerEmail: data.email,
             ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
           },
         });
@@ -98,6 +123,7 @@ export class AuthRepository {
           userId: newUser.id,
           provider: data.provider,
           providerId: data.providerId,
+          providerEmail: data.email,
           ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
         },
       });
