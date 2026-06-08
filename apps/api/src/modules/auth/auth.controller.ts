@@ -41,7 +41,6 @@ export class AuthController {
     private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
-  
   // --------------- GOOGLE OAUTH FLOWS --------------- //
 
   // Endpoint to trigger Google OAuth flow; Passport strategy handles the rest

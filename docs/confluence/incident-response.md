@@ -22,11 +22,11 @@
 
 These match the alert routing in [monitoring.md](../operations/monitoring.md). They drive paging, comms, and post-incident review depth.
 
-| Severity | Definition | Examples | Page? | Status page? | Review required? |
-|---|---|---|---|---|---|
-| **SEV-1** | Critical user impact OR data risk OR security event | Site down, payments broken, data corruption, credential leak, ransomware-style activity | Yes, immediate, escalate at 10 min | Yes, immediately | Yes, blameless review within 5 business days |
-| **SEV-2** | Major degradation but core flows work | Latency 3× budget, one region unhealthy, key feature broken for a subset | Yes, non-urgent | Yes, within 30 min | Yes, lightweight review within 10 business days |
-| **SEV-3** | Minor or contained | Background job delays without user impact, non-critical feature degraded | Slack only | Optional, only if customers noticing | Optional, judgment call |
+| Severity  | Definition                                          | Examples                                                                                | Page?                              | Status page?                         | Review required?                                |
+| --------- | --------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| **SEV-1** | Critical user impact OR data risk OR security event | Site down, payments broken, data corruption, credential leak, ransomware-style activity | Yes, immediate, escalate at 10 min | Yes, immediately                     | Yes, blameless review within 5 business days    |
+| **SEV-2** | Major degradation but core flows work               | Latency 3× budget, one region unhealthy, key feature broken for a subset                | Yes, non-urgent                    | Yes, within 30 min                   | Yes, lightweight review within 10 business days |
+| **SEV-3** | Minor or contained                                  | Background job delays without user impact, non-critical feature degraded                | Slack only                         | Optional, only if customers noticing | Optional, judgment call                         |
 
 **Security incidents are SEV-1 until proven otherwise.** Even a suspected breach gets SEV-1 treatment because the cost of underreacting outweighs the cost of overreacting.
 
@@ -36,12 +36,12 @@ These match the alert routing in [monitoring.md](../operations/monitoring.md). T
 
 For SEV-1 and substantial SEV-2 incidents, multiple roles need to exist. One person can hold multiple roles in small incidents; in large ones, split them.
 
-| Role | Responsibilities |
-|---|---|
-| **Incident Commander (IC)** | Owns the incident response. Decides next moves. Does not do hands-on debugging — coordinates the people who do. Maintains the timeline. Calls in additional help when needed. |
-| **Tech Lead / Investigator** | Does the actual debugging. Reports findings to the IC. May rotate as people get tired. |
-| **Communications Lead** | Drafts status page updates and customer comms. Posts in `#incidents`. Filters noise so the IC and investigators can focus. |
-| **Scribe** | Maintains the incident timeline in real time (when each event happened, what was tried, what the outcome was). Critical for the post-incident review. |
+| Role                         | Responsibilities                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Incident Commander (IC)**  | Owns the incident response. Decides next moves. Does not do hands-on debugging — coordinates the people who do. Maintains the timeline. Calls in additional help when needed. |
+| **Tech Lead / Investigator** | Does the actual debugging. Reports findings to the IC. May rotate as people get tired.                                                                                        |
+| **Communications Lead**      | Drafts status page updates and customer comms. Posts in `#incidents`. Filters noise so the IC and investigators can focus.                                                    |
+| **Scribe**                   | Maintains the incident timeline in real time (when each event happened, what was tried, what the outcome was). Critical for the post-incident review.                         |
 
 In smaller incidents, the on-call engineer wears all four hats. The moment that becomes too much to hold, escalate.
 
@@ -143,16 +143,16 @@ A rough script. Adapt to context.
 
 ## 8. Mitigation playbook (common situations)
 
-| Situation | First-line mitigation |
-|---|---|
-| Error rate spike right after deploy | Revert the deploy. Pipeline supports one-click rollback. |
-| Error rate spike with no deploy | Check dependencies (DB, Redis, third-party APIs); check traffic anomalies. |
-| Database connections exhausted | Restart pooler; identify and kill long-running queries; flag heaviest endpoints. |
-| Queue backlog runaway | Scale out workers; if a poison message, move offending job to DLQ; pause queue if necessary. |
-| Single region degraded | Failover traffic to healthy regions; investigate after. |
-| Suspected credential leak | Rotate the credential immediately; revoke tokens; assess blast radius after. |
-| Suspicious admin activity | Disable the account; preserve logs; loop in security; investigate after. |
-| Payment provider issues | Switch to fallback provider if configured; queue + retry pattern handles transient failures. |
+| Situation                           | First-line mitigation                                                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| Error rate spike right after deploy | Revert the deploy. Pipeline supports one-click rollback.                                     |
+| Error rate spike with no deploy     | Check dependencies (DB, Redis, third-party APIs); check traffic anomalies.                   |
+| Database connections exhausted      | Restart pooler; identify and kill long-running queries; flag heaviest endpoints.             |
+| Queue backlog runaway               | Scale out workers; if a poison message, move offending job to DLQ; pause queue if necessary. |
+| Single region degraded              | Failover traffic to healthy regions; investigate after.                                      |
+| Suspected credential leak           | Rotate the credential immediately; revoke tokens; assess blast radius after.                 |
+| Suspicious admin activity           | Disable the account; preserve logs; loop in security; investigate after.                     |
+| Payment provider issues             | Switch to fallback provider if configured; queue + retry pattern handles transient failures. |
 
 These all assume the runbooks exist. If a runbook is missing, the post-incident action item writes itself.
 
@@ -191,52 +191,61 @@ The review happens within 5 business days of a SEV-1, 10 business days of a SEV-
 **Status:** Draft / In Review / Final
 
 ## Summary
+
 2–3 sentences. What happened, what was the impact, what fixed it.
 
 ## Impact
+
 - Users affected: X% of total / specific cohort
 - Requests affected: N over the incident window
 - Revenue impact (if measurable): $X
 - SLO impact: Y% of monthly error budget consumed
 
 ## Timeline
-| Time (UTC) | Event |
-|---|---|
-| 14:02 | Alert: api_error_rate_high fired |
-| 14:03 | @oncall acknowledged |
-| 14:05 | Identified deploy at 13:58 as suspect |
-| 14:07 | Initiated rollback |
-| 14:11 | Rollback complete, error rate dropping |
-| 14:25 | Error rate normal, incident mitigated |
-| 14:55 | Resolved after 30 min stable |
+
+| Time (UTC) | Event                                  |
+| ---------- | -------------------------------------- |
+| 14:02      | Alert: api_error_rate_high fired       |
+| 14:03      | @oncall acknowledged                   |
+| 14:05      | Identified deploy at 13:58 as suspect  |
+| 14:07      | Initiated rollback                     |
+| 14:11      | Rollback complete, error rate dropping |
+| 14:25      | Error rate normal, incident mitigated  |
+| 14:55      | Resolved after 30 min stable           |
 
 ## What went well
+
 - Detection was fast (alert fired within 90s of regression)
 - Rollback was clean and worked first try
 - Status page updates were timely
 
 ## What went poorly
+
 - The bug was caught by users before our pre-deploy canary spotted it
 - Runbook for this service was outdated
 - 4 people piled into the channel doing the same query, no IC was named for 12 minutes
 
 ## Where we got lucky
+
 - The bug only affected a code path used by <5% of users; full impact would have been much higher
 - The on-call engineer happened to be the same person who deployed the change
 
 ## Root cause(s)
+
 Multiple. Not "who," but "what."
+
 - Test coverage missed the failing case because [reason]
 - The canary check didn't catch it because [reason]
 - The runbook didn't help because [reason]
 
 ## Action items
-| Action | Owner | Target date | Issue link |
-|---|---|---|---|
-| Add test case for the missed scenario | @author | YYYY-MM-DD | #1234 |
-| Update canary check to include endpoint X | @platform-lead | YYYY-MM-DD | #1235 |
-| Refresh runbook for service Y | @service-owner | YYYY-MM-DD | #1236 |
-| Document IC-declaration protocol more prominently | @oncall-lead | YYYY-MM-DD | #1237 |
+
+| Action                                            | Owner          | Target date | Issue link |
+| ------------------------------------------------- | -------------- | ----------- | ---------- |
+| Add test case for the missed scenario             | @author        | YYYY-MM-DD  | #1234      |
+| Update canary check to include endpoint X         | @platform-lead | YYYY-MM-DD  | #1235      |
+| Refresh runbook for service Y                     | @service-owner | YYYY-MM-DD  | #1236      |
+| Document IC-declaration protocol more prominently | @oncall-lead   | YYYY-MM-DD  | #1237      |
 ```
 
 ### "Blameless" — what it actually means

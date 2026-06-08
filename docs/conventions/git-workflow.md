@@ -37,6 +37,7 @@ Use **Conventional Commits**, enforced by commitlint.
 Types: `feat`, `fix`, `chore`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, `revert`.
 
 Examples:
+
 ```
 feat(billing): add support for ACH payments
 fix(auth): refresh token rotation race
@@ -51,10 +52,13 @@ refactor(users): extract repository layer
 ## 3. Pull requests
 
 ### Title
+
 Same format as the commit title. PRs are squash-merged; the PR title becomes the merge commit.
 
 ### Description
+
 The PR template covers:
+
 - **What** changed
 - **Why** (link the issue)
 - **How to verify** (steps, screenshots, recordings)
@@ -63,12 +67,15 @@ The PR template covers:
 - **Checklist** (tests, docs, ADR if needed)
 
 ### Size
+
 Aim for < 400 lines changed. Larger PRs are reviewed slower and worse. Split:
+
 - Mechanical refactors first
 - Add tests for old behavior
 - Then make the substantive change
 
 ### Reviewers
+
 - At least **one approval** required. Two for changes touching auth, billing, or DB schema.
 - Code owners auto-assigned via `CODEOWNERS`.
 - Use "Request changes" for must-fix; "Comment" for non-blocking suggestions. Be specific in nits — call them `nit:` so the author can skip if needed.
@@ -78,6 +85,7 @@ Aim for < 400 lines changed. Larger PRs are reviewed slower and worse. Split:
 ## 4. CI gates
 
 PRs cannot merge unless:
+
 - TypeScript builds cleanly
 - ESLint passes with zero warnings
 - Tests pass (unit + integration; E2E on critical paths)
@@ -134,6 +142,7 @@ gitGraph
 ## 8. Reverts
 
 If a PR breaks production:
+
 - **Revert first, debug later.** Don't try to roll-forward under pressure.
 - Use GitHub's "Revert" button — it preserves history.
 - Open a follow-up PR with the proper fix.
@@ -164,11 +173,13 @@ Use **feature flags**, not long-lived branches. Ship code behind a flag, enable 
 ## 11. Pre-commit hooks
 
 Husky + lint-staged:
+
 - Prettier on changed files
 - ESLint --fix on changed files
 - Typecheck on changed packages
 
 Pre-push:
+
 - Full typecheck
 - Affected unit tests
 

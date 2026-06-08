@@ -9,18 +9,18 @@ Performance is a feature. We treat it like security — budgets, gates, and a cu
 
 ## 1. Budgets
 
-| Surface | Metric | Budget |
-|---|---|---|
-| API | P50 latency | < 80ms |
-| API | P95 latency | < 200ms |
-| API | P99 latency | < 500ms |
-| API | Error rate | < 0.1% |
-| Web (mobile, 4G) | LCP | < 2.5s |
-| Web | INP | < 200ms |
-| Web | CLS | < 0.1 |
-| Web | First-load JS | < 200 KB gzipped |
-| DB | P95 query time | < 50ms |
-| Queue | Job P95 duration | per-job, documented |
+| Surface          | Metric           | Budget              |
+| ---------------- | ---------------- | ------------------- |
+| API              | P50 latency      | < 80ms              |
+| API              | P95 latency      | < 200ms             |
+| API              | P99 latency      | < 500ms             |
+| API              | Error rate       | < 0.1%              |
+| Web (mobile, 4G) | LCP              | < 2.5s              |
+| Web              | INP              | < 200ms             |
+| Web              | CLS              | < 0.1               |
+| Web              | First-load JS    | < 200 KB gzipped    |
+| DB               | P95 query time   | < 50ms              |
+| Queue            | Job P95 duration | per-job, documented |
 
 PRs that exceed budgets are blocked unless an owner approves an explicit exception with a remediation plan.
 
@@ -31,6 +31,7 @@ PRs that exceed budgets are blocked unless an owner approves an explicit excepti
 Every performance investigation starts with **production data**, not local benchmarks.
 
 Order of operations:
+
 1. **Define the problem** — which endpoint, which percentile, what user impact.
 2. **Find the slow component** — distributed trace, not gut feeling.
 3. **Profile that component** — flamegraph, query plan, network waterfall.
@@ -47,6 +48,7 @@ Order of operations:
 ### 3.1 Eliminate N+1
 
 The single most common backend perf bug. Detected by query count per request:
+
 - ESLint rule + middleware that fails tests when a single request issues > 30 queries.
 - Prisma logging in dev with `log: ['query']` to spot fan-out.
 - Fix with `include` / `select` (eager loading), or with a `DataLoader`-style batcher when the call sites are distributed.
@@ -73,11 +75,13 @@ await prisma.order.findMany({
 ### 3.4 Cache deliberately
 
 Cache hierarchy:
+
 1. **In-memory LRU** for tiny read-mostly data (feature flags) — single-digit µs.
 2. **Redis** for shared computed values, query results, rate counters.
 3. **HTTP cache** at CDN / proxy layer for public/anonymous responses.
 
 Cache rules:
+
 - Always with a TTL. Forever-caches become forever-bugs.
 - Versioned keys (`:v3`) — bump on shape changes, never deploy a shape change to the same key.
 - Cache **on read**, invalidate **on write** within the same module. Don't fan invalidation out.
@@ -85,6 +89,7 @@ Cache rules:
 ### 3.5 Offload to queues
 
 Anything > ~100ms that isn't strictly required for the response — queue it.
+
 - Emails, exports, third-party syncs, billing reconciliation.
 - Queue jobs are idempotent (see [Backend §9](../architecture/backend.md#9-async-work-bullmq)).
 
@@ -161,6 +166,7 @@ Render the shell immediately, stream slow data in. Never block the document on a
 ### 5.1 EXPLAIN ANALYZE habits
 
 Before merging a query that runs > 100x/minute:
+
 1. Run on a production-shaped dataset.
 2. Confirm it uses an index.
 3. Confirm no `Sort` step over > 10k rows.
@@ -199,6 +205,7 @@ P95 is the metric. Average latency hides the worst experiences. A query that's f
 ## 7. Load testing
 
 For surfaces with traffic risk (launches, marketing pushes, billing day):
+
 - k6 script in `/performance/`.
 - Run against staging at expected peak + 2x.
 - Assert: P95 within budget, error rate < 0.1%, no DB or queue saturation.
@@ -208,6 +215,7 @@ For surfaces with traffic risk (launches, marketing pushes, billing day):
 ## 8. Observability hooks
 
 Performance work requires the signals to exist before you start:
+
 - Per-endpoint histograms in metrics.
 - Distributed trace on slow requests sampled at 100%.
 - Slow query log enabled in Postgres (statements > 200ms).
@@ -219,7 +227,7 @@ See [Observability](../architecture/observability.md).
 
 ## 9. Anti-patterns
 
-- ❌ "Premature optimization" used as a slogan to skip *all* optimization. Budgets are not premature.
+- ❌ "Premature optimization" used as a slogan to skip _all_ optimization. Budgets are not premature.
 - ❌ Caching to fix bad queries — fix the query first.
 - ❌ Removing features to "make it faster" without measuring.
 - ❌ Optimizing local-dev numbers. Production hardware behaves differently.

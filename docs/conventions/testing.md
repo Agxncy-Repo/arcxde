@@ -33,16 +33,16 @@ flowchart TB
 
 ## 3. Tools
 
-| Type | Tool | Notes |
-|---|---|---|
-| Unit (backend) | Vitest | Fast, ESM-native |
-| Integration (backend) | Jest + Supertest + Testcontainers | Booted Postgres + Redis |
-| Unit (frontend) | Vitest + React Testing Library | RTL, no Enzyme |
-| Visual | Storybook + Chromatic (optional) | UI primitives |
-| E2E | Playwright | Headless in CI, headed locally |
-| Accessibility | axe-playwright | Runs inside E2E |
-| Load | k6 | Pre-launch + before significant traffic events |
-| Contract | OpenAPI diff in CI | Detect breaking changes |
+| Type                  | Tool                              | Notes                                          |
+| --------------------- | --------------------------------- | ---------------------------------------------- |
+| Unit (backend)        | Vitest                            | Fast, ESM-native                               |
+| Integration (backend) | Jest + Supertest + Testcontainers | Booted Postgres + Redis                        |
+| Unit (frontend)       | Vitest + React Testing Library    | RTL, no Enzyme                                 |
+| Visual                | Storybook + Chromatic (optional)  | UI primitives                                  |
+| E2E                   | Playwright                        | Headless in CI, headed locally                 |
+| Accessibility         | axe-playwright                    | Runs inside E2E                                |
+| Load                  | k6                                | Pre-launch + before significant traffic events |
+| Contract              | OpenAPI diff in CI                | Detect breaking changes                        |
 
 ---
 
@@ -87,7 +87,7 @@ describe('BillingService.charge', () => {
 - One behavior per test.
 - Title is a sentence.
 - AAA blocks visible.
-- Don't assert on log calls unless logging *is* the behavior.
+- Don't assert on log calls unless logging _is_ the behavior.
 
 ---
 
@@ -140,11 +140,13 @@ test('a new user can sign up, verify email, and reach the dashboard', async ({ p
 ## 8. Mocks — when and when not
 
 Mock:
+
 - External SaaS we don't own (Stripe, email, OAuth providers).
 - Time (`vi.useFakeTimers()`).
 - Random values (`Math.random`, `crypto.randomUUID`) — inject via a service.
 
 Don't mock:
+
 - Code you own. If it's hard to test without mocking it, the design is the problem.
 - Prisma. Use a real DB.
 - HTTP between your own services. Boot them.
@@ -164,13 +166,13 @@ Don't mock:
 
 ## 10. Coverage
 
-| Surface | Lines | Branches |
-|---|---|---|
-| Services (backend) | 90% | 85% |
-| Utilities | 95% | 90% |
-| Controllers | 70% | 60% |
-| UI components | 70% | 60% |
-| Overall repo | 80% | 75% |
+| Surface            | Lines | Branches |
+| ------------------ | ----- | -------- |
+| Services (backend) | 90%   | 85%      |
+| Utilities          | 95%   | 90%      |
+| Controllers        | 70%   | 60%      |
+| UI components      | 70%   | 60%      |
+| Overall repo       | 80%   | 75%      |
 
 Enforced in CI. PR that drops coverage below threshold fails.
 
@@ -189,6 +191,7 @@ Coverage is reported but **not the goal**. Reviewers focus on whether the tests 
 ## 12. Performance tests
 
 For revenue or scale-critical endpoints:
+
 - k6 script in `/performance/`.
 - Run before launch and before any 10x traffic event.
 - Target: P95 stays within budget at 2× expected peak.

@@ -18,22 +18,22 @@
 
 ## 2. Stack
 
-| Concern | Choice |
-|---|---|
-| Framework | Next.js 14+ (App Router) |
-| Language | TypeScript strict |
-| Styling | Tailwind CSS + CSS variables for theming |
-| Component primitives | Radix UI (via shadcn/ui in `packages/ui/`) |
-| Forms | react-hook-form + Zod (`zodResolver`) |
-| Data fetching (client) | TanStack Query |
-| State (server) | RSC + cookies + cache |
-| State (client) | Zustand for cross-component, `useState` for local |
-| HTTP client | Generated from OpenAPI → typed `apiClient` |
-| Auth | HTTP-only cookies set by API; `getServerSession()` helper |
-| Icons | lucide-react |
-| Animation | framer-motion (sparingly) |
-| Testing | Vitest (unit), Playwright (E2E), Storybook (visual) |
-| Bundle analysis | `@next/bundle-analyzer` in CI |
+| Concern                | Choice                                                    |
+| ---------------------- | --------------------------------------------------------- |
+| Framework              | Next.js 14+ (App Router)                                  |
+| Language               | TypeScript strict                                         |
+| Styling                | Tailwind CSS + CSS variables for theming                  |
+| Component primitives   | Radix UI (via shadcn/ui in `packages/ui/`)                |
+| Forms                  | react-hook-form + Zod (`zodResolver`)                     |
+| Data fetching (client) | TanStack Query                                            |
+| State (server)         | RSC + cookies + cache                                     |
+| State (client)         | Zustand for cross-component, `useState` for local         |
+| HTTP client            | Generated from OpenAPI → typed `apiClient`                |
+| Auth                   | HTTP-only cookies set by API; `getServerSession()` helper |
+| Icons                  | lucide-react                                              |
+| Animation              | framer-motion (sparingly)                                 |
+| Testing                | Vitest (unit), Playwright (E2E), Storybook (visual)       |
+| Bundle analysis        | `@next/bundle-analyzer` in CI                             |
 
 ---
 
@@ -83,6 +83,7 @@ apps/web/
 ```
 
 ### Route groups
+
 - `(marketing)` — pre-rendered/static, no auth.
 - `(auth)` — auth flow pages.
 - `(app)` — requires session; layout enforces auth.
@@ -92,6 +93,7 @@ apps/web/
 ## 4. Server vs Client Components — Decision Rule
 
 **Default to Server Components.** Add `'use client'` only when one of these is true:
+
 1. The component uses `useState` / `useReducer` / `useEffect`.
 2. The component uses event handlers (`onClick`, `onChange`).
 3. The component uses browser-only APIs.
@@ -172,6 +174,7 @@ packages/contracts/
 ```
 
 Frontend imports:
+
 ```typescript
 import { apiClient, UserSchema, type User } from '@[project]/contracts';
 ```
@@ -204,6 +207,7 @@ const onSubmit = form.handleSubmit(async (values) => {
 ```
 
 **Conventions:**
+
 - Field-level errors → render under the field.
 - Form-level errors → render in a banner at the top.
 - Disable submit while in-flight; show spinner inline.
@@ -240,16 +244,17 @@ sequenceDiagram
 
 ## 9. Performance Budget
 
-| Metric | Budget | Enforcement |
-|---|---|---|
-| LCP (mobile, 4G) | < 2.5s | Lighthouse CI gate |
-| TBT | < 200ms | Lighthouse CI gate |
-| CLS | < 0.1 | Lighthouse CI gate |
-| First-load JS (per route) | < 200 KB gzipped | `next build` analyzer in CI |
-| Image — all images | `next/image`, responsive `sizes` | ESLint rule + review |
-| Fonts | `next/font` only, `display: swap` | ESLint rule |
+| Metric                    | Budget                            | Enforcement                 |
+| ------------------------- | --------------------------------- | --------------------------- |
+| LCP (mobile, 4G)          | < 2.5s                            | Lighthouse CI gate          |
+| TBT                       | < 200ms                           | Lighthouse CI gate          |
+| CLS                       | < 0.1                             | Lighthouse CI gate          |
+| First-load JS (per route) | < 200 KB gzipped                  | `next build` analyzer in CI |
+| Image — all images        | `next/image`, responsive `sizes`  | ESLint rule + review        |
+| Fonts                     | `next/font` only, `display: swap` | ESLint rule                 |
 
 ### Tactics
+
 - **Streaming + Suspense** for slow data; never block the shell.
 - **`<Link prefetch={true}>`** on visible nav links.
 - **Dynamic import** for heavy client-only widgets (charts, editors).
@@ -291,6 +296,7 @@ flowchart LR
 ```
 
 **Decision order when choosing where state lives:**
+
 1. Is it shareable / shareable URL? → URL search params.
 2. Is it server data? → TanStack Query.
 3. Is it form data? → react-hook-form.
@@ -303,13 +309,13 @@ We don't add Redux. We don't add Jotai+Recoil+Zustand. Pick one for client state
 
 ## 13. Error Handling
 
-| Layer | Handler |
-|---|---|
-| Per-route | `app/(group)/error.tsx` |
-| Per-segment async | `<Suspense fallback>` + thrown errors caught by `error.tsx` |
-| Global JS errors | `global-error.tsx` |
-| Network errors (client) | TanStack Query `onError` → toast + retry |
-| API errors with known code | Mapped to user-friendly messages |
+| Layer                      | Handler                                                     |
+| -------------------------- | ----------------------------------------------------------- |
+| Per-route                  | `app/(group)/error.tsx`                                     |
+| Per-segment async          | `<Suspense fallback>` + thrown errors caught by `error.tsx` |
+| Global JS errors           | `global-error.tsx`                                          |
+| Network errors (client)    | TanStack Query `onError` → toast + retry                    |
+| API errors with known code | Mapped to user-friendly messages                            |
 
 Always render something useful — never a white screen.
 
@@ -327,12 +333,12 @@ Always render something useful — never a white screen.
 
 ## 15. Testing
 
-| Type | Tool | What |
-|---|---|---|
-| Unit | Vitest + React Testing Library | Components in isolation, hooks |
-| Visual | Storybook | Every UI primitive + key compositions |
-| E2E | Playwright | Critical user journeys: signup, checkout, core action |
-| A11y | axe-playwright | On every E2E run |
+| Type   | Tool                           | What                                                  |
+| ------ | ------------------------------ | ----------------------------------------------------- |
+| Unit   | Vitest + React Testing Library | Components in isolation, hooks                        |
+| Visual | Storybook                      | Every UI primitive + key compositions                 |
+| E2E    | Playwright                     | Critical user journeys: signup, checkout, core action |
+| A11y   | axe-playwright                 | On every E2E run                                      |
 
 **Rule:** every critical journey has at least one E2E that runs on every PR.
 

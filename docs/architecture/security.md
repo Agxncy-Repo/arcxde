@@ -8,14 +8,14 @@
 
 ## 1. Threat Model (concise)
 
-| Asset | Threats | Mitigations |
-|---|---|---|
-| User credentials | Phishing, brute force, leaks | Argon2id hashing, rate limits, MFA optional |
-| Session tokens | XSS, CSRF, replay | HTTP-only secure cookies, short access TTL, rotating refresh, CSRF tokens on state-changing routes |
-| PII | Unauthorized access, leaks | RBAC, field-level encryption for sensitive PII, audit logs |
-| Money / billing | Replay, tampering | Idempotency keys, signed webhooks, server-side amount calculation only |
-| Database | SQL injection, exfiltration | ORM-only (no raw concat), least-privilege DB user, network isolation |
-| Secrets | Leakage to logs/repo | Secret manager, no `.env` in repo, log redaction |
+| Asset            | Threats                      | Mitigations                                                                                        |
+| ---------------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| User credentials | Phishing, brute force, leaks | Argon2id hashing, rate limits, MFA optional                                                        |
+| Session tokens   | XSS, CSRF, replay            | HTTP-only secure cookies, short access TTL, rotating refresh, CSRF tokens on state-changing routes |
+| PII              | Unauthorized access, leaks   | RBAC, field-level encryption for sensitive PII, audit logs                                         |
+| Money / billing  | Replay, tampering            | Idempotency keys, signed webhooks, server-side amount calculation only                             |
+| Database         | SQL injection, exfiltration  | ORM-only (no raw concat), least-privilege DB user, network isolation                               |
+| Secrets          | Leakage to logs/repo         | Secret manager, no `.env` in repo, log redaction                                                   |
 
 ---
 
@@ -38,20 +38,24 @@ No single layer is trusted in isolation. Bypass one — others catch it.
 ## 3. Authentication
 
 ### 3.1 Passwords
+
 - Hashing: **Argon2id**, params reviewed annually against OWASP guidance.
 - Min length 12, no max upper bound. No forced character classes (NIST 800-63B).
 - Breach check on signup + password change against HIBP k-anonymity API.
 
 ### 3.2 Tokens
+
 - **Access token:** JWT, 15 minutes, signed with rotating asymmetric key (RS256).
 - **Refresh token:** opaque, stored hashed in DB, 30 days, rotates on use.
 - Cookies: `HttpOnly; Secure; SameSite=Lax; Path=/;` — `SameSite=Strict` on the refresh endpoint.
 
 ### 3.3 MFA
+
 - TOTP (RFC 6238) — opt-in for users, required for admin roles.
 - Backup codes one-time, hashed.
 
 ### 3.4 OAuth
+
 - Standard providers (Google, Microsoft, GitHub) via OIDC.
 - PKCE always. State parameter validated server-side.
 
@@ -99,12 +103,12 @@ No single layer is trusted in isolation. Bypass one — others catch it.
 
 ## 9. Rate Limiting
 
-| Endpoint class | Limit |
-|---|---|
-| Auth (login, signup, password reset) | 10 / 15 min / IP + 5 / 15 min / email |
-| Read endpoints | 60 / minute / user |
-| Write endpoints | 30 / minute / user |
-| Webhooks | Per partner, signed + replay protected |
+| Endpoint class                       | Limit                                  |
+| ------------------------------------ | -------------------------------------- |
+| Auth (login, signup, password reset) | 10 / 15 min / IP + 5 / 15 min / email  |
+| Read endpoints                       | 60 / minute / user                     |
+| Write endpoints                      | 30 / minute / user                     |
+| Webhooks                             | Per partner, signed + replay protected |
 
 Implementation: Redis token bucket via NestJS Throttler. Returns `429` with `Retry-After`.
 
@@ -164,11 +168,15 @@ Implementation: Redis token bucket via NestJS Throttler. Returns `429` with `Ret
 ## 16. Headers (helmet defaults + overrides)
 
 ```typescript
-app.use(helmet({
-  contentSecurityPolicy: { /* explicit list, no 'unsafe-inline' in prod */ },
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      /* explicit list, no 'unsafe-inline' in prod */
+    },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }),
+);
 ```
 
 ---

@@ -18,6 +18,7 @@ Standards are not preferences. They exist so reading other people's code feels l
 ## 2. No `any`. Almost never.
 
 `any` is a request for a runtime bug.
+
 - Use `unknown` and narrow.
 - Use generics when you genuinely don't know the type.
 - If you must use `any`, ESLint requires a `// eslint-disable-next-line @typescript-eslint/no-explicit-any -- reason` comment with a real reason.
@@ -26,20 +27,21 @@ Standards are not preferences. They exist so reading other people's code feels l
 
 ## 3. Naming
 
-| Thing | Style | Example |
-|---|---|---|
-| Files | kebab-case | `billing.service.ts` |
-| Test files | colocated, `.spec.ts` | `billing.service.spec.ts` |
-| Classes | PascalCase | `BillingService` |
-| Interfaces | PascalCase, **no `I` prefix** | `PaymentProvider` |
-| Types | PascalCase | `OrderStatus` |
-| Functions / methods | camelCase, verb-led | `createOrder`, `isExpired` |
-| Constants | UPPER_SNAKE for true constants | `MAX_RETRIES` |
-| React components | PascalCase, file matches | `UserAvatar.tsx` |
-| Hooks | `use` prefix | `useDashboardData` |
-| Booleans | `is/has/can/should` prefix | `isActive`, `hasPermission` |
+| Thing               | Style                          | Example                     |
+| ------------------- | ------------------------------ | --------------------------- |
+| Files               | kebab-case                     | `billing.service.ts`        |
+| Test files          | colocated, `.spec.ts`          | `billing.service.spec.ts`   |
+| Classes             | PascalCase                     | `BillingService`            |
+| Interfaces          | PascalCase, **no `I` prefix**  | `PaymentProvider`           |
+| Types               | PascalCase                     | `OrderStatus`               |
+| Functions / methods | camelCase, verb-led            | `createOrder`, `isExpired`  |
+| Constants           | UPPER_SNAKE for true constants | `MAX_RETRIES`               |
+| React components    | PascalCase, file matches       | `UserAvatar.tsx`            |
+| Hooks               | `use` prefix                   | `useDashboardData`          |
+| Booleans            | `is/has/can/should` prefix     | `isActive`, `hasPermission` |
 
 **Avoid:**
+
 - Abbreviations: `usr`, `cfg`, `mgr`. Type the extra letters.
 - "Manager", "Helper", "Util" as suffixes. Be specific.
 - Hungarian notation.
@@ -85,6 +87,7 @@ Standards are not preferences. They exist so reading other people's code feels l
 ## 8. Imports
 
 Order — enforced by ESLint `import/order`:
+
 1. Node built-ins (`node:fs`, etc.)
 2. External packages
 3. Internal packages (`@[project]/*`)
@@ -163,15 +166,15 @@ Always use `import type` for type-only imports — keeps runtime bundle clean.
 
 ## 16. Tooling
 
-| Tool | Role |
-|---|---|
-| TypeScript | Type checking |
-| ESLint | Lint, style, rules |
-| Prettier | Format |
-| pnpm | Package management |
-| Turborepo | Build orchestration + cache |
-| lint-staged + Husky | Pre-commit hooks |
-| commitlint | Commit message format |
+| Tool                | Role                        |
+| ------------------- | --------------------------- |
+| TypeScript          | Type checking               |
+| ESLint              | Lint, style, rules          |
+| Prettier            | Format                      |
+| pnpm                | Package management          |
+| Turborepo           | Build orchestration + cache |
+| lint-staged + Husky | Pre-commit hooks            |
+| commitlint          | Commit message format       |
 
 Pre-commit runs: lint-staged → Prettier + ESLint --fix → typecheck on changed files. Pre-push runs: full type check.
 

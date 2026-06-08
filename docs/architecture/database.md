@@ -18,6 +18,7 @@
 ## 2. Why PostgreSQL + Prisma
 
 **PostgreSQL** because:
+
 - ACID transactions across all data — no eventual-consistency headaches.
 - JSONB for flexible fields where useful, structured columns otherwise.
 - Full-text search, partial indexes, expression indexes — enough to delay specialized stores.
@@ -25,6 +26,7 @@
 - Hugely portable across managed providers.
 
 **Prisma** because:
+
 - End-to-end TypeScript types.
 - Migration system that's actually pleasant.
 - Generator ecosystem (Zod, OpenAPI, ERD).
@@ -55,12 +57,12 @@ model User {
 
 ### 3.2 Required columns on every table
 
-| Column | Type | Purpose |
-|---|---|---|
-| `id` | text (prefixed CUID) | Primary key |
-| `createdAt` | timestamptz | Insert audit |
-| `updatedAt` | timestamptz | Update audit (Prisma `@updatedAt`) |
-| `deletedAt` | timestamptz? | Soft delete (only when soft delete is needed — most tables hard delete) |
+| Column      | Type                 | Purpose                                                                 |
+| ----------- | -------------------- | ----------------------------------------------------------------------- |
+| `id`        | text (prefixed CUID) | Primary key                                                             |
+| `createdAt` | timestamptz          | Insert audit                                                            |
+| `updatedAt` | timestamptz          | Update audit (Prisma `@updatedAt`)                                      |
+| `deletedAt` | timestamptz?         | Soft delete (only when soft delete is needed — most tables hard delete) |
 
 ### 3.3 Naming
 
@@ -156,27 +158,32 @@ enum Role { OWNER ADMIN MEMBER VIEWER }
 ## 5. Indexing Strategy
 
 ### 5.1 Always indexed
+
 - Foreign keys (Prisma doesn't auto-create the index — add it).
 - Columns used in `WHERE` on hot queries.
 - Columns used in `ORDER BY` on paginated lists (often a composite with the filter column).
 
 ### 5.2 Composite indexes
+
 - Order matters: most selective column first if filters are independent; otherwise put the equality filter first and range filter second.
 - Example: list orders for a user, newest first → `@@index([userId, createdAt(sort: Desc)])`.
 
 ### 5.3 Partial indexes
+
 - For "hot subset" queries — e.g., active sessions only:
   ```sql
   CREATE INDEX session_active_idx ON sessions(user_id) WHERE expires_at > now();
   ```
 
 ### 5.4 Expression indexes
+
 - For case-insensitive lookups:
   ```sql
   CREATE UNIQUE INDEX users_email_lower_idx ON users (lower(email));
   ```
 
 ### 5.5 Don't over-index
+
 - Every index slows writes. Audit unused indexes quarterly:
   ```sql
   SELECT * FROM pg_stat_user_indexes WHERE idx_scan = 0;
@@ -187,6 +194,7 @@ enum Role { OWNER ADMIN MEMBER VIEWER }
 ## 6. Migrations
 
 ### 6.1 Tooling
+
 - `prisma migrate dev` in development.
 - `prisma migrate deploy` in CI/CD for staging/production.
 - Generated SQL is **reviewed in PR**, not just the schema diff.
@@ -196,25 +204,31 @@ enum Role { OWNER ADMIN MEMBER VIEWER }
 Every migration must be safe to run while old code is still serving traffic.
 
 **Adding a column**
+
 - Add as nullable OR with a default.
 - Backfill in a separate migration if needed.
 - Make NOT NULL only after all rows have a value.
 
 **Renaming a column**
+
 - ❌ Never rename in place.
 - ✅ Three-step: add new column, dual-write, backfill, switch reads, drop old. Each step is a separate deploy.
 
 **Dropping a column**
+
 - Step 1: stop writing to it in code, deploy.
 - Step 2: drop in a later migration once you're confident nothing reads it.
 
 **Index creation on large tables**
+
 - Use `CREATE INDEX CONCURRENTLY` (manual SQL migration; Prisma supports this via raw `--create-only` workflow).
 
 **Destructive changes**
+
 - Require an ADR. No exceptions.
 
 ### 6.3 Migration review checklist (in PR template)
+
 - [ ] Backward compatible with the previous code version
 - [ ] Tested against a copy of staging data (or representative volume)
 - [ ] No blocking locks on tables > 1M rows
@@ -235,11 +249,13 @@ Every migration must be safe to run while old code is still serving traffic.
 Default: hard delete.
 
 Soft delete only when:
+
 - Legal / compliance requires retention.
 - Recovery UX is part of the product ("Trash" / "Restore").
 - Downstream systems hold references.
 
 When soft-deleting:
+
 - Use `deletedAt` (nullable timestamp), not a boolean.
 - All queries must filter `deletedAt: null` — extract a Prisma extension or middleware to enforce.
 - Foreign keys: prefer `ON DELETE SET NULL` or `RESTRICT` over `CASCADE` on soft-deleted parents.
@@ -280,6 +296,7 @@ Written from a single `AuditService` — never inline.
 - For serverless deployments: use Prisma's Data Proxy or Neon's pooler.
 
 Sizing:
+
 ```
 total_connections ≈ (api_instances × connection_limit) + (workers × worker_connections) + headroom
 ```
@@ -310,15 +327,15 @@ Rule: writes and read-after-write → primary. Heavy reads, analytics, list endp
 
 ## 12. Common Performance Pitfalls
 
-| Pitfall | Fix |
-|---|---|
-| N+1 in `findMany` + nested loops | Use `include` / `select` or DataLoader |
-| Wide `select *` returning JSONB blobs | Project only needed fields |
-| `findMany` without `take` | Always paginate |
-| Offset pagination on large tables | Cursor pagination (`cursor` + `take`) |
-| `where: { foo: { in: [...10000 ids] } }` | Batch in chunks of ~500 |
-| `count()` on huge tables | Cache it; use `EXPLAIN` to confirm cost |
-| Stringly-typed JSON queries | Prefer structured columns + indexes |
+| Pitfall                                         | Fix                                           |
+| ----------------------------------------------- | --------------------------------------------- |
+| N+1 in `findMany` + nested loops                | Use `include` / `select` or DataLoader        |
+| Wide `select *` returning JSONB blobs           | Project only needed fields                    |
+| `findMany` without `take`                       | Always paginate                               |
+| Offset pagination on large tables               | Cursor pagination (`cursor` + `take`)         |
+| `where: { foo: { in: [...10000 ids] } }`        | Batch in chunks of ~500                       |
+| `count()` on huge tables                        | Cache it; use `EXPLAIN` to confirm cost       |
+| Stringly-typed JSON queries                     | Prefer structured columns + indexes           |
 | Holding open transactions during external calls | Never. Do external calls outside transactions |
 
 ---
@@ -342,10 +359,13 @@ async listOrders({ userId, cursor, limit = 20 }: ListInput) {
 ### 13.2 Transactional consistency
 
 ```typescript
-await prisma.$transaction(async (tx) => {
-  const order = await tx.order.create({ data });
-  await tx.inventory.update({ where: { id }, data: { quantity: { decrement: 1 } } });
-}, { isolationLevel: 'Serializable', timeout: 5000 });
+await prisma.$transaction(
+  async (tx) => {
+    const order = await tx.order.create({ data });
+    await tx.inventory.update({ where: { id }, data: { quantity: { decrement: 1 } } });
+  },
+  { isolationLevel: 'Serializable', timeout: 5000 },
+);
 ```
 
 Use `Serializable` only when correctness demands it (money, inventory). Default is `ReadCommitted`.
