@@ -24,7 +24,7 @@ COPY packages/config/package.json packages/config/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/utils/package.json packages/utils/
 
-RUN --mount=type=cache,id=s/c47862ea-b2ca-4d09-b00d-bc3287024d9b-pnpm-store,target=/root/.local/share/pnpm/store \
+RUN --mount=type=cache,id=cache-pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
 # ---- 2. Builder ----
