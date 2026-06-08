@@ -1,17 +1,10 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompleteOnboardingDto } from '@app/contracts';
 
-
 @Injectable()
 export class UsersService {
-  constructor(
-    private prisma: PrismaService,
-    
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async completeOnboarding(userId: string, _dto: CompleteOnboardingDto) {
     try {
@@ -38,5 +31,4 @@ export class UsersService {
       throw new NotFoundException('User profile account not found.');
     }
   }
-
 }

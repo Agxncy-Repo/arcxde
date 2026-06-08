@@ -18,16 +18,22 @@ export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  async validate(
+  validate(
     _accessToken: string,
     _refreshToken: string,
-    profile: any,
-  ): Promise<NormalizedProfile> {
+    profile: {
+      id: string;
+      name?: { givenName?: string; familyName?: string };
+      emails?: { value: string }[];
+      photos?: { value: string }[];
+      _json?: { email_verified?: boolean };
+    },
+  ): NormalizedProfile {
     const { id, name, emails, photos } = profile;
 
     const isEmailVerified = profile._json?.email_verified === true;
 
-    const normalizedProfile: NormalizedProfile = {
+    return {
       provider: IdentityProvider.GOOGLE,
       providerId: id,
       email: emails?.[0]?.value ?? null,
@@ -35,7 +41,5 @@ export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
       fullName: name ? `${name.givenName} ${name.familyName}` : null,
       avatarUrl: photos?.[0]?.value ?? null,
     };
-
-    return normalizedProfile;
   }
 }

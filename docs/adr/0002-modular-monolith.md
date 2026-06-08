@@ -16,6 +16,7 @@ We need to ship a non-trivial product with a small team. The default industry co
 We will start as a **modular monolith**: a single deployable application composed of strongly-bounded modules with explicit public interfaces and no shared internals.
 
 We will extract a module into a separate service only when **all** of the following are true:
+
 1. The module has an independent scaling profile (CPU / memory / IO).
 2. The module is owned by an independent team with separate release cadence.
 3. The operational and coupling cost of in-process integration exceeds the cost of network calls + service ownership.
@@ -23,27 +24,32 @@ We will extract a module into a separate service only when **all** of the follow
 ## Consequences
 
 ### Positive
+
 - One deployment, one database, atomic refactors across modules.
 - Lower operational complexity: one binary to monitor, debug, profile.
 - Faster iteration: cross-module changes don't need cross-repo coordination.
-- Strong module boundaries mean *future* extraction is straightforward when justified.
+- Strong module boundaries mean _future_ extraction is straightforward when justified.
 
 ### Negative
+
 - All teams share a deployment cadence and risk profile.
 - Vertical scaling has limits; eventually we will need to break things out.
 - Discipline required: developers must respect module boundaries even though the compiler doesn't force them at deploy time.
 
 ### Neutral
+
 - Workers run the same codebase as the API, just a different entrypoint.
 
 ## Alternatives considered
 
 ### Microservices from day one
+
 - Pros: forced modularity, independent deploys.
 - Cons: ops complexity, distributed transaction headaches, premature for our scale, slows the small team.
 - Verdict: rejected. The benefits accrue at scale we don't have yet.
 
 ### Serverless-first
+
 - Pros: zero ops, pay-per-use.
 - Cons: cold starts, vendor lock-in, debugging is painful, Prisma + Postgres connection pooling is awkward.
 - Verdict: rejected for the core API. We may use serverless for specific edge use cases.

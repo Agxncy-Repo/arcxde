@@ -45,10 +45,14 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: Prisma generate
+        run: pnpm db:generate
+
       - name: Lint
         run: pnpm lint
 
       - name: Typecheck
+        if: always() #Forces typecheck to run even if lint/format check fail
         run: pnpm typecheck
 
       - name: Commit-message lint (PR only)

@@ -20,10 +20,10 @@
 
 ## 2. Two kinds of releases
 
-| Type | What | How | Frequency |
-|---|---|---|---|
-| **Standard release** | Merge to main → automated deploy through pipeline | Pipeline (see [deployment.md](../operations/deployment.md)) | Many per day |
-| **Coordinated release** | A user-visible change that crosses teams, requires marketing/support coordination, or has high reputational risk | Release captain orchestrates feature-flag rollout + comms | When the work demands it |
+| Type                    | What                                                                                                             | How                                                         | Frequency                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------ |
+| **Standard release**    | Merge to main → automated deploy through pipeline                                                                | Pipeline (see [deployment.md](../operations/deployment.md)) | Many per day             |
+| **Coordinated release** | A user-visible change that crosses teams, requires marketing/support coordination, or has high reputational risk | Release captain orchestrates feature-flag rollout + comms   | When the work demands it |
 
 Most things are standard releases. The bureaucracy below applies almost entirely to coordinated releases.
 
@@ -45,12 +45,14 @@ flowchart LR
 ### Author responsibilities
 
 Before merging:
+
 - All CI green (typecheck, lint, unit, integration, contract, audit, bundle size).
 - At least one approving review.
-- PR description explains *why*, not just *what*.
+- PR description explains _why_, not just _what_.
 - If risky: feature flag is in place, default off.
 
 After merging:
+
 - Watch [Service Overview dashboard](../operations/monitoring.md) for ~30 minutes after the deploy hits production.
 - Watch Sentry for new error fingerprints attributed to your commit.
 - If anything looks off, revert. Investigate after.
@@ -58,10 +60,12 @@ After merging:
 ### When CI is flaky
 
 A flaky CI run is **not** a green light to merge. Either:
+
 - Wait and re-run, or
 - File the flake (see [testing.md](../conventions/testing.md) flake policy)
 
 Bypassing CI is reserved for genuine emergencies and requires:
+
 - Approval from on-call lead or engineering lead
 - An issue filed for the bypassed check
 - A note in the PR explaining the bypass
@@ -97,12 +101,15 @@ For any coordinated release, the release captain produces a short doc:
 **Stakeholders:** @eng-lead @product @support @marketing
 
 ## What ships
+
 One paragraph. What changes from the user's perspective.
 
 ## Why now
+
 Business / customer driver.
 
 ## Rollout plan
+
 - [ ] Code deployed dark (date)
 - [ ] Internal dogfooding (date)
 - [ ] 1% rollout (date)
@@ -111,17 +118,21 @@ Business / customer driver.
 - [ ] Flag removal (date — 30 days after 100%)
 
 ## Risks & mitigations
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Example: payment provider rate limits us at scale | Medium | Pre-warmed with provider; can fall back to v1 path via flag |
+
+| Risk                                              | Likelihood | Mitigation                                                  |
+| ------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| Example: payment provider rate limits us at scale | Medium     | Pre-warmed with provider; can fall back to v1 path via flag |
 
 ## Rollback plan
+
 Disable flag.feature_name. Data effects (if any): describe how to clean up.
 
 ## Success metrics
+
 What does "this release worked" look like? Tie to dashboards.
 
 ## Comms
+
 - [ ] Internal announcement (date)
 - [ ] Help-center article published (date)
 - [ ] Customer email / in-product notice (date)
@@ -161,6 +172,7 @@ Internal services don't get version numbers — the deployed commit is the versi
 Two audiences, two formats.
 
 ### Internal changelog
+
 Auto-generated from Conventional Commits on merge to main. Filed in `CHANGELOG.md` per package and the top-level repo.
 
 ```
@@ -174,6 +186,7 @@ Auto-generated from Conventional Commits on merge to main. Filed in `CHANGELOG.m
 ```
 
 ### Customer release notes
+
 Hand-written, published to the help center. Aimed at users, not engineers.
 
 - Lead with what they can do that they couldn't before.
@@ -247,13 +260,13 @@ The mechanics live in [database.md](../architecture/database.md). The release-le
 
 Who tells whom, what:
 
-| Event | Channel | Owner | When |
-|---|---|---|---|
-| Coordinated release at 100% | Customer email + in-product banner + release notes | Product + Marketing | Day of |
-| New major API version | Developer changelog + email to API users | Platform | Day of, plus deprecation notices on old version |
-| Breaking change to existing API | Email to affected customers + in-product notice + log warning header on the deprecated endpoint | Platform + Support | At least 6 months in advance |
-| Planned maintenance | Status page + email to admins | Platform | At least 1 week in advance |
-| Hotfix that fixes a user-impacting bug | Status page entry, no email unless reportable incident | On-call / Support | Same day |
+| Event                                  | Channel                                                                                         | Owner               | When                                            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------- |
+| Coordinated release at 100%            | Customer email + in-product banner + release notes                                              | Product + Marketing | Day of                                          |
+| New major API version                  | Developer changelog + email to API users                                                        | Platform            | Day of, plus deprecation notices on old version |
+| Breaking change to existing API        | Email to affected customers + in-product notice + log warning header on the deprecated endpoint | Platform + Support  | At least 6 months in advance                    |
+| Planned maintenance                    | Status page + email to admins                                                                   | Platform            | At least 1 week in advance                      |
+| Hotfix that fixes a user-impacting bug | Status page entry, no email unless reportable incident                                          | On-call / Support   | Same day                                        |
 
 Support team always gets a heads-up _before_ the customer-facing announcement, never after. Surprised support = bad day for everyone.
 

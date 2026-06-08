@@ -116,7 +116,4 @@ export class EmailService {
       throw new InternalServerErrorException('Could not process authentication mailer pipeline.');
     }
   }
-
 }
-
-  

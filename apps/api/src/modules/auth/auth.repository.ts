@@ -216,16 +216,12 @@ export class AuthRepository {
 
   // 8. Session Persistence Layer tracking (hashed token operations)
   async createSession(data: SessionCreationData) {
-    // 1. Build the baseline object with required fields
-    const sessionPayload: any = {
-      userId: data.userId,
-      tokenHash: data.tokenHash,
-      expiresAt: data.expiresAt,
-    };
-
-    // 3. Pass the cleanly built object to Prisma
     return this.prisma.session.create({
-      data: sessionPayload,
+      data: {
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+      },
     });
   }
 

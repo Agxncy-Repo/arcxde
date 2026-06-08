@@ -4,10 +4,10 @@ Small, dependency-free utilities shared across the monorepo.
 
 ## What's here
 
-| Module | Purpose |
-|---|---|
+| Module   | Purpose                                                  |
+| -------- | -------------------------------------------------------- |
 | `result` | `Result<T, E>` discriminated union for expected failures |
-| `async` | `sleep`, `retry` with exponential backoff and jitter |
+| `async`  | `sleep`, `retry` with exponential backoff and jitter     |
 
 ## What's NOT here
 

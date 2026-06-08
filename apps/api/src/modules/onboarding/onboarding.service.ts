@@ -76,7 +76,11 @@ export class OnboardingService {
 }
 
 function deriveProfile(score: number): string {
-  if (score < 30) return 'beginner';
-  if (score < 70) return 'intermediate';
+  if (score < 30) {
+    return 'beginner';
+  }
+  if (score < 70) {
+    return 'intermediate';
+  }
   return 'advanced';
 }

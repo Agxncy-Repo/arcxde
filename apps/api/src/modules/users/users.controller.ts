@@ -1,10 +1,7 @@
 import { Controller, Patch, UseGuards, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Adjust path to your JWT Guard
-import {
-  type CompleteOnboardingDto,
-  completeOnboardingSchema,
-} from '@app/contracts';
+import { type CompleteOnboardingDto, completeOnboardingSchema } from '@app/contracts';
 import { ZodBody } from '@/common/validation/zod.decorators';
 import { ApiZodBody } from '@/common/swagger/zod-swagger.decorator';
 import { ApiTags } from '@nestjs/swagger';
@@ -23,7 +20,7 @@ export class UsersController {
   ) // 100% Automated & In Sync
   @ApiBearerAuth()
   async completeOnboarding(
-    @Req() req: any,
+    @Req() req: { user: { id: string } },
     @ZodBody(completeOnboardingSchema) body: CompleteOnboardingDto,
   ) {
     // Passport attaches the parsed token payload to req.user (usually containing sub/id)
@@ -31,6 +28,4 @@ export class UsersController {
 
     return this.usersService.completeOnboarding(userId, body);
   }
-
-  
 }
