@@ -105,7 +105,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // ---- 3. Swagger — must be set up BEFORE compress ----
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     const swagger = new DocumentBuilder()
       .setTitle('arcxde API')
       .setDescription('See docs/conventions/api-design.md for the contract.')
@@ -133,7 +133,7 @@ async function bootstrap(): Promise<void> {
   await app.listen({ port, host });
 
   logger.log(`API listening on http://${host}:${port}`);
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     logger.log(`Swagger UI: http://${host}:${port}/docs`);
   }
 
