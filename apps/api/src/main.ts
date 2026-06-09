@@ -31,25 +31,21 @@ async function bootstrap(): Promise<void> {
   // ---- Passport-Fastify Compatibility Hook ----
   // This shims Express-style methods onto Fastify's response lifecycle
   // so that legacy Passport strategies can safely execute 302 redirects.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-  fastify.getInstance().addHook('onRequest', (req: any, res: any, done: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-    res.setHeader = (key: string, value: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+  fastify.getInstance().addHook('onRequest', (req, res, done) => {
+    const shim = res as unknown as {
+      setHeader: (key: string, value: string | number | string[]) => typeof shim;
+      end: (data?: string | Buffer) => typeof shim;
+    };
+    shim.setHeader = (key: string, value: string | number | string[]) => {
       res.raw.setHeader(key, value);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return res;
+      return shim;
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-    res.end = (data?: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    shim.end = (data?: string | Buffer) => {
       res.raw.end(data);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return res;
+      return shim;
     };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    req.res = res;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (req as unknown as Record<string, unknown>).res = shim;
     done();
   });
 
@@ -78,6 +74,7 @@ async function bootstrap(): Promise<void> {
         }),
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Crucial for cross-domain OPTIONS requests
   });
 
   await app.register(cookie, {
@@ -109,7 +106,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // ---- 3. Swagger — must be set up BEFORE compress ----
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     const swagger = new DocumentBuilder()
       .setTitle('arcxde API')
       .setDescription('See docs/conventions/api-design.md for the contract.')
@@ -137,7 +134,7 @@ async function bootstrap(): Promise<void> {
   await app.listen({ port, host });
 
   logger.log(`API listening on http://${host}:${port}`);
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     logger.log(`Swagger UI: http://${host}:${port}/docs`);
   }
 

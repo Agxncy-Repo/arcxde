@@ -24,20 +24,19 @@ COPY packages/config/package.json packages/config/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/utils/package.json packages/utils/
 
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.dedupe-peer-dependents=false
 
 # ---- 2. Builder ----
 FROM node:22-alpine AS builder
 WORKDIR /repo
 RUN corepack enable
 
+# Now copy source
+COPY . .
+
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /repo/packages ./packages
-
-# Now copy source
-COPY . .
 
 # Generate Prisma client (uses apps/api/prisma/schema.prisma)
 RUN pnpm --filter @app/api db:generate

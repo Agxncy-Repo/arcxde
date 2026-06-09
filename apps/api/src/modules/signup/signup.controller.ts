@@ -57,8 +57,10 @@ export class SignupController {
   )
   async finalizeSignup(
     @ZodBody(finalizeRegistrationSchema) body: FinalizeRegistrationDto,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Res({ passthrough: true }) res: any, // Typing as Express Response with passthrough
+    @Res({ passthrough: true })
+    res: {
+      cookie: (name: string, value: string, options: Record<string, unknown>) => void;
+    },
   ) {
     // 1. Delegate the database updates and token generation to the service layer
     const result = await this.signupService.completeUserRegistration(body);

@@ -62,6 +62,9 @@ export const envSchema = z
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional().or(z.literal('')),
     OTEL_SERVICE_NAME: z.string().default('project-api'),
     SENTRY_DSN: z.string().url().optional().or(z.literal('')),
+
+    // ---- Swagger ----
+    ALLOW_SWAGGER: z.preprocess((val) => val === 'true', z.boolean().default(false)),
   })
   // Cross-field rule: the two JWT secrets must differ. Re-using one for both is a
   // common copy-paste mistake that defeats refresh-token rotation.

@@ -49,7 +49,7 @@ export class AuthService {
     // 2. With a resolved user context, generate a new authenticated session with token rotation
     const tokens = await this.createAuthenticatedSession(identityResult.userId);
 
-    if (!identityResult.isNewUser) {
+    if (!identityResult.isNewUser && profile.email) {
       user = await this.authRepository.findUserByEmail(profile.email);
     }
     // 3. Return the generated tokens along with a flag indicating if this is a new user for frontend onboarding flows
@@ -204,8 +204,8 @@ export class AuthService {
     const accessSecret = process.env.JWT_ACCESS_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
 
-    const accessSecretExpiresIn: string = process.env.JWT_ACCESS_TTL ?? '15m';
-    const refreshSecretExpiresIn: string = process.env.JWT_REFRESH_TTL ?? '7d';
+    const accessSecretExpiresIn = (process.env.JWT_ACCESS_TTL ?? '15m') as never;
+    const refreshSecretExpiresIn = (process.env.JWT_REFRESH_TTL ?? '7d') as never;
 
     if (!accessSecret || !refreshSecret) {
       throw new Error(

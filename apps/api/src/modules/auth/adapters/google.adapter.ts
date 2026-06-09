@@ -22,21 +22,23 @@ export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async validate(
+  validate(
     _accessToken: string,
     _refreshToken: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    profile: any,
-  ): Promise<NormalizedProfile> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    profile: {
+      id: string;
+      name?: { givenName?: string; familyName?: string };
+      emails?: { value: string }[];
+      photos?: { value: string }[];
+      _json?: { email_verified?: boolean };
+    },
+  ): NormalizedProfile {
     const { id, name, emails, photos } = profile;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const isEmailVerified = profile._json?.email_verified === true;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const normalizedProfile: NormalizedProfile = {
+    return {
       provider: IdentityProvider.GOOGLE,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       providerId: id,
@@ -48,7 +50,5 @@ export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       avatarUrl: photos?.[0]?.value ?? null,
     };
-
-    return normalizedProfile;
   }
 }

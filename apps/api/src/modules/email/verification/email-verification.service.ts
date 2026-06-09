@@ -290,7 +290,7 @@ export class EmailVerificationService {
       // 4. Dispatch via the base EmailService instance
       await this.emailService.sendVerificationLink(formattedEmail, verificationLink);
       return { registrationToken };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new InternalServerErrorException(
         `Failed to execute verification test pipeline inside verification service: ${error instanceof Error ? error.message : String(error)}`,
       );
