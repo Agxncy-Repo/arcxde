@@ -210,14 +210,13 @@ model EmailVerificationSession{
 model OnboardingQuestion {
   id             String   @id @default(dbgenerated("'obq_' || gen_random_uuid()::text"))
   role           String   @map("role")            // "analyst", "developer", etc. (no enum)
-  questionKey    String   @map("question_key")    // stable identifier, e.g., "ai_usage"
+  questionKey    String   @map("question_key")    // stable identifier, e.g., "ai_lit_01"
   text           String   @db.Text               // displayed question text
   description    String?  @db.Text               // optional helper text
-  options        Json     // array of option labels, e.g., ["I rarely use AI", "I use AI occasionally", ...]
+  options        Json     // array of option labels, e.g., ["A. Option 1", "B. Option 2", ...]
+  correctAnswer  String   @map("correct_answer") @db.VarChar(10) // the correct answer letter (e.g., "A", "B", "C", "D")
   order          Int      @default(0)
   isActive       Boolean  @default(true) @map("is_active")
-  questionWeight Float    @default(1.0) @map("question_weight") // overall multiplier for this question
-  optionWeights  Json     @default("[]") @map("option_weights") // per-option scores, same length as options
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -248,7 +247,6 @@ model UserOnboardingAnswer {
   onboardingId   String   @map("onboarding_id")
   questionId     String   @map("question_id")
   selectedOption String   @map("selected_option") @db.VarChar(255) // the option text they chose
-  selectedWeight Float    @default(0) @map("selected_weight")      // denormalised weight of the selected option
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   onboarding UserOnboarding     @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
