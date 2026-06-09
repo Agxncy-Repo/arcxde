@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, staging] # Run Github Actions on PRs targeting main or staging
+    branches: [main, dev] # Run Github Actions on PRs targeting main or dev
   push:
-    branches: [main, staging]
+    branches: [main, dev]
   workflow_dispatch:
 
 # Cancel superseded runs for the same PR to save minutes
