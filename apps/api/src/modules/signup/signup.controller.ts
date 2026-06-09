@@ -1,7 +1,3 @@
-import { Controller, Post, HttpCode, HttpStatus, Res } from '@nestjs/common';
-import { EmailVerificationService } from '../email/verification/email-verification.service';
-import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
-import { ZodBody } from '../../common/validation/zod.decorators.js';
 import {
   emailInitiateSchema,
   type EmailInitiateSchema,
@@ -10,8 +6,14 @@ import {
   finalizeRegistrationSchema,
   type FinalizeRegistrationDto,
 } from '@app/contracts';
-import { SignupService } from './signup.service';
+import { Controller, Post, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+
+import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
+import { ZodBody } from '../../common/validation/zod.decorators.js';
+import { EmailVerificationService } from '../email/verification/email-verification.service';
+
+import { SignupService } from './signup.service';
 
 @ApiTags('Signup')
 @Controller({ path: 'signup', version: '1' })
@@ -64,6 +66,7 @@ export class SignupController {
     const result = await this.signupService.completeUserRegistration(body);
 
     // 2. BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     res.cookie('refresh_token', result.tokens.refreshToken, {
       httpOnly: true, // Prevents JavaScript / XSS extraction
       secure: process.env.NODE_ENV === 'production', // Only sent over HTTPS in production

@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { EmailVerificationService } from '../email/verification/email-verification.service.js';
-import { IdentityResolver } from '../auth/identity/identity.resolver.js';
-import * as argon2 from 'argon2';
-import { AuthService } from '../auth/auth.service';
 import { FinalizeRegistrationDto } from '@app/contracts';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import * as argon2 from 'argon2';
+
+import { AuthService } from '../auth/auth.service';
+import { IdentityResolver } from '../auth/identity/identity.resolver.js';
 import { NormalizedProfile } from '../auth/models/auth-registration.interface';
+import { EmailVerificationService } from '../email/verification/email-verification.service.js';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SignupService {

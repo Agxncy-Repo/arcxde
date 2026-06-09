@@ -22,12 +22,15 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+
 import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
 import { ZodBody } from '../../common/validation/zod.decorators.js';
-import { AuthService } from './auth.service.js';
-import type { NormalizedProfile } from './models/auth-registration.interface.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { EmailVerificationService } from '../email/verification/email-verification.service.js';
+
+import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+
+import type { NormalizedProfile } from './models/auth-registration.interface.js';
 
 interface TokenResponse {
   accessToken: string;
@@ -62,10 +65,12 @@ export class AuthController {
   ): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const profile = req.user as NormalizedProfile;
       const { tokens, isNewUser, user } = await this.service.registerOrLoginWithProvider(profile);
 
       // BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.cookie('refresh_token', tokens.refreshToken, {
         httpOnly: true, // Prevents JavaScript/XSS extraction
         secure: process.env.NODE_ENV === 'production', // Only sent over HTTPS in production
@@ -116,6 +121,7 @@ export class AuthController {
       }
 
       // 1. Terminate the database session record
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.service.clearSession(sessionId);
 
       // 2. If you are using HTTP-only cookies for refresh tokens, clear them here:
@@ -125,7 +131,8 @@ export class AuthController {
       res.status(200).send({
         success: true,
         message: 'Logged out successfully. Token session has been revoked.',
-        sessionId: sessionId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        sessionId,
       });
       return;
     } catch (error: unknown) {

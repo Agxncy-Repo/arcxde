@@ -1,8 +1,9 @@
 // src/modules/auth/adapters/google.adapter.ts
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-google-oauth20';
 import { IdentityProvider } from '@prisma/client';
+import { Strategy } from 'passport-google-oauth20';
+
 import type { NormalizedProfile } from '../models/auth-registration.interface.js';
 
 // This adapter transforms the raw profile data returned by Google's OAuth strategy into a normalized format that our AuthService can work with, regardless of the provider.
@@ -11,8 +12,11 @@ import type { NormalizedProfile } from '../models/auth-registration.interface.js
 export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
   constructor() {
     super({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       clientID: process.env.GOOGLE_CLIENT_ID!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       callbackURL: process.env.GOOGLE_CALLBACK_URL!,
       scope: ['email', 'profile'],
     });
@@ -31,14 +35,19 @@ export class GoogleAdapter extends PassportStrategy(Strategy, 'google') {
   ): NormalizedProfile {
     const { id, name, emails, photos } = profile;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const isEmailVerified = profile._json?.email_verified === true;
 
     return {
       provider: IdentityProvider.GOOGLE,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       providerId: id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       email: emails?.[0]?.value ?? null,
       emailVerified: isEmailVerified,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       fullName: name ? `${name.givenName} ${name.familyName}` : null,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       avatarUrl: photos?.[0]?.value ?? null,
     };
   }

@@ -11,17 +11,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 import type { OnboardingQuestion } from '@app/contracts';
 
-export interface QuestionWithWeights {
+export interface QuestionForScoring {
   id: string;
   options: string[];
-  optionWeights: number[];
-  questionWeight: number;
+  correctAnswer: string;
 }
 
 export interface AnswerRecord {
   questionId: string;
   selectedOption: string;
-  selectedWeight: number;
 }
 
 export interface SaveSubmissionParams {
@@ -60,23 +58,20 @@ export class OnboardingRepository {
     );
   }
 
-  /** Returns questions with weights — for internal score computation only. */
-  async findQuestionsWithWeights(role: string): Promise<QuestionWithWeights[]> {
+  /** Returns questions with correct answers — for internal score computation only. */
+  async findQuestionsForScoring(role: string): Promise<QuestionForScoring[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const rows = await this.prisma.onboardingQuestion.findMany({
       where: { role, isActive: true },
       orderBy: { order: 'asc' },
-      select: { id: true, options: true, optionWeights: true, questionWeight: true },
+      select: { id: true, options: true, correctAnswer: true },
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    return rows.map(
-      (r: { id: string; options: unknown; optionWeights: unknown; questionWeight: number }) => ({
-        id: r.id,
-        options: r.options as string[],
-        optionWeights: r.optionWeights as number[],
-        questionWeight: r.questionWeight,
-      }),
-    );
+    return rows.map((r: { id: string; options: unknown; correctAnswer: string }) => ({
+      id: r.id,
+      options: r.options as string[],
+      correctAnswer: r.correctAnswer,
+    }));
   }
 
   /**
@@ -130,30 +125,14 @@ export class OnboardingRepository {
             questionId: ans.questionId,
           },
         },
-        update: { selectedOption: ans.selectedOption, selectedWeight: ans.selectedWeight },
+        update: { selectedOption: ans.selectedOption },
         create: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           onboardingId: onboarding.id,
           questionId: ans.questionId,
           selectedOption: ans.selectedOption,
-          selectedWeight: ans.selectedWeight,
         },
       });
     }
-  }
-
-  /** Persists the computed onboarding result for the user. */
-  async upsertResult(
-    userId: string,
-    totalScore: number,
-    normalizedScore: number,
-    profileKey: string,
-  ): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await this.prisma.userOnboardingResult.upsert({
-      where: { userId },
-      update: { totalScore, normalizedScore, profileKey, computedAt: new Date() },
-      create: { userId, totalScore, normalizedScore, profileKey },
-    });
   }
 }

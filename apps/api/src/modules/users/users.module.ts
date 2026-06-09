@@ -1,8 +1,10 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
-import { PrismaModule } from '../prisma/prisma.module'; // Adjust this path to match your global PrismaModule location
+
 import { AuthModule } from '../auth/auth.module';
+import { PrismaModule } from '../prisma/prisma.module'; // Adjust this path to match your global PrismaModule location
+
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
 
 @Module({
   imports: [
