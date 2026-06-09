@@ -112,7 +112,7 @@ model User {
   assessmentAttempts AssessmentAttempt[]
   lessonProgress   UserLessonProgress[]
   onboarding       UserOnboarding?
-  onboardingResult UserOnboardingResult?
+  literaryAssessment UserLiteraryAssessment?
 
   @@index([createdAt])
   @@map("users")
@@ -258,18 +258,54 @@ model UserOnboardingAnswer {
   @@map("user_onboarding_answers")
 }
 
-// Computed readiness profile derived from the user's weighted answers
-model UserOnboardingResult {
-  id              String   @id @default(dbgenerated("'ubr_' || gen_random_uuid()::text"))
-  userId          String   @unique @map("user_id")
-  totalScore      Float    @map("total_score")
-  normalizedScore Float    @map("normalized_score")
-  profileKey      String?  @map("profile_key") // e.g., "beginner", "intermediate", "advanced"
-  computedAt      DateTime @default(now()) @map("computed_at") @db.Timestamptz(6)
+// Literary Assessment Questions (AI Literacy Test)
+model LiteraryQuestion {
+  id             String   @id @default(dbgenerated("'lq_' || gen_random_uuid()::text"))
+  questionKey    String   @unique @map("question_key")    // e.g., "ai_lit_01"
+  text           String   @db.Text
+  options        Json     // array of option labels
+  correctAnswer  String   @map("correct_answer") @db.VarChar(10) // correct answer letter (A, B, C, etc.)
+  order          Int      @default(0)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers UserLiteraryAnswer[]
 
-  @@map("user_onboarding_results")
+  @@index([isActive])
+  @@map("literary_questions")
+}
+
+// User's literary assessment attempt (one per user)
+model UserLiteraryAssessment {
+  id          String   @id @default(dbgenerated("'ula_' || gen_random_uuid()::text"))
+  userId      String   @unique @map("user_id")
+  score       Int      @default(0)
+  passed      Boolean  @default(false)
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers UserLiteraryAnswer[]
+
+  @@map("user_literary_assessments")
+}
+
+// Stores the user's selected answer for each literacy question
+model UserLiteraryAnswer {
+  id             String   @id @default(dbgenerated("'ula_' || gen_random_uuid()::text"))
+  assessmentId   String   @map("assessment_id")
+  questionId     String   @map("question_id")
+  selectedOption String   @map("selected_option") @db.VarChar(10) // the answer letter they chose
+  isCorrect      Boolean  @default(false) @map("is_correct")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  assessment UserLiteraryAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question   LiteraryQuestion       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionId])
+  @@index([assessmentId])
+  @@index([questionId])
+  @@map("user_literary_answers")
 }
 
 // -----------------------------------------------------------------------------

@@ -52,7 +52,8 @@ async function main(): Promise<void> {
     create: {
       email: 'alice@acme.test',
       fullName: 'Alice Admin',
-      emailVerified: new Date(),
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     },
   });
 
@@ -62,28 +63,268 @@ async function main(): Promise<void> {
     create: {
       email: 'bob@acme.test',
       fullName: 'Bob Member',
-      emailVerified: new Date(),
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     },
   });
 
-  // ---- Developer questions (AI Literacy) ----
+  const analystQuestions = [
+    {
+      role: 'analyst',
+      questionKey: 'ai_usage',
+      text: 'How do you currently use AI in your work?',
+      options: [
+        'I rarely use AI today',
+        'I use AI occasionally',
+        'I use AI regularly',
+        'AI is central to my workflow',
+        'I help shape AI-enabled products or workflows',
+      ],
+      correctAnswer: 'A',
+      order: 1,
+    },
+    {
+      role: 'analyst',
+      questionKey: 'decision_type',
+      text: 'What kind of decisions or outcomes do your insights influence?',
+      options: [
+        'Internal team decisions',
+        'Operational or business decisions',
+        'Customer-facing decisions',
+        'Financial or regulated outcomes',
+        'High-impact or sensitive decisions',
+      ],
+      correctAnswer: 'A',
+      order: 2,
+    },
+    {
+      role: 'analyst',
+      questionKey: 'data_type',
+      text: 'What type of data do you typically work with?',
+      options: [
+        'General business data',
+        'Customer or behavioural data',
+        'Financial or regulated data',
+        'Health or sensitive personal data',
+        'Mixed or multiple data types',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+    {
+      role: 'analyst',
+      questionKey: 'improvement_goal',
+      text: 'What are you hoping to improve most?',
+      options: [
+        'Understanding AI risks and limitations',
+        'Using AI more effectively',
+        'Responsible AI decision-making',
+        'AI governance and oversight',
+        'Building better AI-enabled products',
+        'Career development',
+      ],
+      correctAnswer: 'A',
+      order: 4,
+    },
+  ];
+
   const developerQuestions = [
     {
       role: 'developer',
-      questionKey: 'ai_lit_01',
-      text: 'What do foundation models generate responses from?',
-      options: ['Explicit rules', 'Training data patterns', 'User instructions'],
+      questionKey: 'ai_integration',
+      text: 'How is AI currently integrated into your development work?',
+      options: [
+        'I rarely use AI tools',
+        'AI assists with code completion or suggestions',
+        'AI generates code or tests for me',
+        'I build features that use AI/ML',
+        'I architect AI-powered systems',
+      ],
+      correctAnswer: 'A',
       order: 1,
     },
     {
       role: 'developer',
-      questionKey: 'ai_lit_02',
-      text: 'What is the term for when an AI generates plausible-sounding but false information?',
-      options: ['Bias', 'Hallucination', 'Variance'],
+      questionKey: 'ai_challenges',
+      text: "What's your biggest challenge with AI development?",
+      options: [
+        'Understanding AI limitations',
+        'Model accuracy and reliability',
+        'Integration with existing systems',
+        'Cost and performance',
+        'Ethical and responsible AI',
+      ],
+      correctAnswer: 'A',
       order: 2,
     },
     {
       role: 'developer',
+      questionKey: 'improvement_goal',
+      text: 'What are you hoping to improve most?',
+      options: [
+        'Writing better AI prompts',
+        'Building more reliable AI features',
+        'Deploying AI in production',
+        'Evaluating AI model outputs',
+        'AI security and safety',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+  ];
+
+  const strategistQuestions = [
+    {
+      role: 'strategist',
+      questionKey: 'ai_opportunity',
+      text: 'How are you identifying AI opportunities?',
+      options: [
+        "I'm still exploring possibilities",
+        'We have identified a few use cases',
+        'We have a roadmap but not yet implemented',
+        'We are actively piloting AI initiatives',
+        'AI is central to our strategy',
+      ],
+      correctAnswer: 'A',
+      order: 1,
+    },
+    {
+      role: 'strategist',
+      questionKey: 'decision_factors',
+      text: 'What drives your AI investment decisions?',
+      options: [
+        'Cost reduction',
+        'Revenue growth',
+        'Customer experience',
+        'Competitive pressure',
+        'Risk and compliance',
+      ],
+      correctAnswer: 'A',
+      order: 2,
+    },
+    {
+      role: 'strategist',
+      questionKey: 'improvement_goal',
+      text: 'What are you hoping to improve most?',
+      options: [
+        'Identifying viable AI use cases',
+        'Building business cases for AI',
+        'Measuring AI ROI',
+        'AI governance and strategy',
+        'Keeping up with AI trends',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+  ];
+
+  const designerQuestions = [
+    {
+      role: 'designer',
+      questionKey: 'ai_in_design',
+      text: 'How do you currently use AI in your design workflow?',
+      options: [
+        'I rarely use AI tools',
+        'AI helps with ideation or brainstorming',
+        'AI generates UI elements or content',
+        'I design AI-powered interfaces',
+        'I prototype with AI-generated assets',
+      ],
+      correctAnswer: 'A',
+      order: 1,
+    },
+    {
+      role: 'designer',
+      questionKey: 'ai_ux_challenge',
+      text: "What's your biggest challenge designing for AI?",
+      options: [
+        'Explaining AI limitations to users',
+        'Handling uncertainty and errors',
+        'Building user trust',
+        'Measuring user experience',
+        'Integrating AI feedback loops',
+      ],
+      correctAnswer: 'A',
+      order: 2,
+    },
+    {
+      role: 'designer',
+      questionKey: 'improvement_goal',
+      text: 'What are you hoping to improve most?',
+      options: [
+        'Human‑centred AI design',
+        'Better AI interaction patterns',
+        'User trust in AI systems',
+        'Evaluating AI-powered UX',
+        'Accessibility in AI products',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+  ];
+
+  const managerQuestions = [
+    {
+      role: 'manager',
+      questionKey: 'team_ai_usage',
+      text: 'How is your team currently using AI?',
+      options: [
+        'We are not using AI yet',
+        'Individual experimentation only',
+        'Some team members use AI tools',
+        'AI is integrated into our workflows',
+        'We build AI‑enabled products',
+      ],
+      correctAnswer: 'A',
+      order: 1,
+    },
+    {
+      role: 'manager',
+      questionKey: 'management_concern',
+      text: "What's your biggest concern about AI adoption?",
+      options: [
+        'Team skills and training',
+        'Data privacy and security',
+        'Cost and budget',
+        'Measuring productivity gains',
+        'Ethical and legal risks',
+      ],
+      correctAnswer: 'A',
+      order: 2,
+    },
+    {
+      role: 'manager',
+      questionKey: 'improvement_goal',
+      text: 'What are you hoping to improve most?',
+      options: [
+        'Upskilling my team on AI',
+        'AI adoption and change management',
+        'Measuring AI impact on KPIs',
+        'Creating AI policies and guidelines',
+        'Budgeting for AI tools',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+  ];
+
+  // ---- AI Literacy Assessment Questions ----
+  const literacyQuestions = [
+    {
+      questionKey: 'ai_lit_01',
+      text: 'What do foundation models generate responses from?',
+      options: ['Explicit rules', 'Training data patterns', 'User instructions'],
+      correctAnswer: 'B',
+      order: 1,
+    },
+    {
+      questionKey: 'ai_lit_02',
+      text: 'What is the term for when an AI generates plausible-sounding but false information?',
+      options: ['Bias', 'Hallucination', 'Variance'],
+      correctAnswer: 'B',
+      order: 2,
+    },
+    {
       questionKey: 'ai_lit_03',
       text: 'Why are AI outputs probabilistic rather than deterministic?',
       options: [
@@ -91,10 +332,10 @@ async function main(): Promise<void> {
         'Because of randomness in training',
         'Due to system errors',
       ],
+      correctAnswer: 'A',
       order: 3,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_04',
       text: 'What do AI systems fundamentally do?',
       options: [
@@ -102,17 +343,17 @@ async function main(): Promise<void> {
         'Predict probable next outputs',
         'Retrieve pre-stored answers',
       ],
+      correctAnswer: 'B',
       order: 4,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_05',
       text: 'How can you best reduce hallucinations in AI outputs?',
       options: ['Increase temperature', 'Use structured outputs', 'Remove context'],
+      correctAnswer: 'B',
       order: 5,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_06',
       text: 'What is the best approach to ensure AI uses current information?',
       options: [
@@ -120,10 +361,10 @@ async function main(): Promise<void> {
         'Retrieve from trusted systems at runtime',
         'Accept all outputs as current',
       ],
+      correctAnswer: 'B',
       order: 6,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_07',
       text: 'What is automation bias in the context of AI systems?',
       options: [
@@ -131,10 +372,10 @@ async function main(): Promise<void> {
         'Automation bias and lack of oversight',
         'Systems becoming slower',
       ],
+      correctAnswer: 'A',
       order: 7,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_08',
       text: 'Which is the most important control for responsible AI deployment?',
       options: [
@@ -142,17 +383,17 @@ async function main(): Promise<void> {
         'Tool permissions and approval controls',
         'Never using AI',
       ],
+      correctAnswer: 'B',
       order: 8,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_09',
       text: 'What should developers review before deploying AI features?',
       options: ['Only code quality', 'Privacy requirements', 'Only speed metrics'],
+      correctAnswer: 'B',
       order: 9,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_10',
       text: 'What is the key principle for handling user data in AI systems?',
       options: [
@@ -160,10 +401,10 @@ async function main(): Promise<void> {
         'Only provide necessary information',
         'Share all data publicly',
       ],
+      correctAnswer: 'B',
       order: 10,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_11',
       text: 'Why is privacy governance important for AI systems?',
       options: [
@@ -171,10 +412,10 @@ async function main(): Promise<void> {
         'Privacy obligations and data rights',
         'Only for compliance',
       ],
+      correctAnswer: 'B',
       order: 11,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_12',
       text: 'What is a key risk when AI has access to sensitive user data?',
       options: [
@@ -182,10 +423,10 @@ async function main(): Promise<void> {
         'Potential exposure of sensitive information',
         'No risks exist',
       ],
+      correctAnswer: 'B',
       order: 12,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_13',
       text: 'What determines if an AI system is safe to deploy?',
       options: [
@@ -193,24 +434,24 @@ async function main(): Promise<void> {
         'Accuracy alone does not determine risk',
         'Speed of responses',
       ],
+      correctAnswer: 'B',
       order: 13,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_14',
       text: 'What can cause AI systems to produce discriminatory outcomes?',
       options: ['Low accuracy', 'Automation bias', 'User preferences'],
+      correctAnswer: 'B',
       order: 14,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_15',
       text: 'How should performance disparities across user groups be addressed?',
       options: ['Ignore them', 'Investigate performance disparities', 'Document but not fix'],
+      correctAnswer: 'B',
       order: 15,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_16',
       text: 'Why is ongoing evaluation with production data important?',
       options: [
@@ -218,24 +459,24 @@ async function main(): Promise<void> {
         'Conduct ongoing evaluation using production data',
         'Only test once',
       ],
+      correctAnswer: 'B',
       order: 16,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_17',
       text: 'What should be assessed when evaluating AI system risks?',
       options: ['Only technical metrics', 'What harm could occur', 'Only user feedback'],
+      correctAnswer: 'B',
       order: 17,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_18',
       text: 'Who ultimately bears responsibility for AI system outcomes?',
       options: ['Only the AI model', 'Deployers remain responsible', 'Only end users'],
+      correctAnswer: 'B',
       order: 18,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_19',
       text: 'What matters most when assessing AI system impact?',
       options: [
@@ -243,10 +484,10 @@ async function main(): Promise<void> {
         'Real-world outcomes and user impact',
         'Only model benchmarks',
       ],
+      correctAnswer: 'B',
       order: 19,
     },
     {
-      role: 'developer',
       questionKey: 'ai_lit_20',
       text: 'What is the goal of responsible AI governance?',
       options: [
@@ -254,6 +495,7 @@ async function main(): Promise<void> {
         'Balancing usefulness, reliability, oversight, privacy and user impact',
         'Maximize speed',
       ],
+      correctAnswer: 'B',
       order: 20,
     },
   ];
@@ -277,16 +519,47 @@ async function main(): Promise<void> {
     create: { userId: alice.id, organizationId: lumon.id, role: 'admin' },
   });
 
-  // Create developer questions (AI Literacy)
-  for (const q of developerQuestions) {
-    await prisma.onboardingQuestion.create({
-      data: q,
+  const allOnboardingQuestions = [
+    ...analystQuestions,
+    ...developerQuestions,
+    ...strategistQuestions,
+    ...designerQuestions,
+    ...managerQuestions,
+  ];
+
+  // Clear existing onboarding data
+  await prisma.userOnboardingAnswer.deleteMany({});
+  await prisma.userOnboarding.deleteMany({});
+  await prisma.onboardingQuestion.deleteMany({});
+
+  // Seed role-based onboarding questions
+  for (const q of allOnboardingQuestions) {
+    await prisma.onboardingQuestion.upsert({
+      where: { role_questionKey: { role: q.role, questionKey: q.questionKey } },
+      update: {},
+      create: q,
+    });
+  }
+
+  // Clear existing literary assessment data
+  await prisma.userLiteraryAnswer.deleteMany({});
+  await prisma.userLiteraryAssessment.deleteMany({});
+  await prisma.literaryQuestion.deleteMany({});
+
+  // Seed AI literacy assessment questions
+  for (const q of literacyQuestions) {
+    await prisma.literaryQuestion.upsert({
+      where: { questionKey: q.questionKey },
+      update: {},
+      create: q,
     });
   }
 
   console.log('✅ Seed complete');
   console.log('   Organizations:', { acme: acme.id, lumon: lumon.id });
   console.log('   Users:        ', { alice: alice.id, bob: bob.id });
+  console.log('   Onboarding questions:', allOnboardingQuestions.length);
+  console.log('   Literary assessment questions:', literacyQuestions.length);
 }
 
 main()

@@ -133,19 +133,4 @@ export class OnboardingRepository {
       });
     }
   }
-
-  /** Persists the computed onboarding result for the user. */
-  async upsertResult(
-    userId: string,
-    totalScore: number,
-    normalizedScore: number,
-    profileKey: string,
-  ): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await this.prisma.userOnboardingResult.upsert({
-      where: { userId },
-      update: { totalScore, normalizedScore, profileKey, computedAt: new Date() },
-      create: { userId, totalScore, normalizedScore, profileKey },
-    });
-  }
 }

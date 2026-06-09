@@ -69,7 +69,6 @@ export class OnboardingService {
     const profileKey = deriveProfile(correctCount);
 
     await this.repo.saveSubmission({ userId, role: body.role, answers });
-    await this.repo.upsertResult(userId, totalScore, normalizedScore, profileKey);
 
     return { userId, totalScore, normalizedScore, maxPossibleScore: totalQuestions, profileKey };
   }
