@@ -53,7 +53,8 @@ export class OnboardingService {
         );
       }
 
-      if (ans.selectedOption === question.correctAnswer) {
+      const selectedLetter = ans.selectedOption.charAt(0);
+      if (selectedLetter === question.correctAnswer) {
         correctCount++;
       }
       answers.push({
