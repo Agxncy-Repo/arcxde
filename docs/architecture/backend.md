@@ -67,6 +67,7 @@ apps/api/src/
 ### Module conventions
 
 A feature module **must** contain only:
+
 - `*.module.ts` — declares providers, controllers, imports/exports.
 - `*.controller.ts` — HTTP layer. Thin. Validates input, calls service, shapes response.
 - `*.service.ts` — Business logic. Plain TS classes, framework-light.
@@ -76,6 +77,7 @@ A feature module **must** contain only:
 - `*.e2e-spec.ts` (in `apps/api/test/`) — Integration / E2E.
 
 A feature module **must not**:
+
 - Import another module's service directly. Use the public module export.
 - Reach into another module's `prisma` queries.
 - Leak Prisma types past the repository.
@@ -94,15 +96,17 @@ flowchart TB
     S -.->|enqueue job| Q[Queue]
 ```
 
-| Layer | Responsibility | Knows about |
-|---|---|---|
-| Controller | Parse, validate, return DTO. No business logic. | Zod schemas, Service interface |
-| Service | Business rules, transactions, orchestration | Repositories, other services (via DI), event bus, queue |
-| Repository | Data access via Prisma. Returns domain objects. | Prisma client, mappers |
-| Infrastructure | Concrete adapters (Redis, S3, providers) | External SDKs |
+| Layer          | Responsibility                                  | Knows about                                             |
+| -------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| Controller     | Parse, validate, return DTO. No business logic. | Zod schemas, Service interface                          |
+| Service        | Business rules, transactions, orchestration     | Repositories, other services (via DI), event bus, queue |
+| Repository     | Data access via Prisma. Returns domain objects. | Prisma client, mappers                                  |
+| Infrastructure | Concrete adapters (Redis, S3, providers)        | External SDKs                                           |
 
 ### Why a repository layer?
+
 We don't enforce it everywhere. Add it when:
+
 - The module has > 5 distinct queries.
 - Queries need to be reused across services.
 - You want to mock data access in service unit tests.
@@ -139,9 +143,7 @@ export interface PaymentProvider {
 }
 
 // billing.module.ts
-providers: [
-  { provide: PAYMENT_PROVIDER, useClass: StripePaymentProvider },
-];
+providers: [{ provide: PAYMENT_PROVIDER, useClass: StripePaymentProvider }];
 ```
 
 This makes the provider swappable (e.g., for testing with a fake, or swapping Stripe → another processor).
@@ -202,7 +204,9 @@ Define narrow error types per module:
 export class UserNotFoundError extends DomainError {
   readonly code = 'USER_NOT_FOUND';
   readonly httpStatus = 404;
-  constructor(userId: string) { super(`User ${userId} not found`); }
+  constructor(userId: string) {
+    super(`User ${userId} not found`);
+  }
 }
 ```
 
@@ -258,18 +262,23 @@ Anything that takes more than ~100ms and isn't strictly required for the respons
 export class UsersService {
   async signup(dto: SignupDto) {
     const user = await this.prisma.user.create({ data: dto });
-    await this.queue.add('user.welcome-email', { userId: user.id }, {
-      attempts: 5,
-      backoff: { type: 'exponential', delay: 1000 },
-      removeOnComplete: { age: 24 * 3600 },
-      removeOnFail: false, // keep for DLQ inspection
-    });
+    await this.queue.add(
+      'user.welcome-email',
+      { userId: user.id },
+      {
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: { age: 24 * 3600 },
+        removeOnFail: false, // keep for DLQ inspection
+      },
+    );
     return user;
   }
 }
 ```
 
 **Job rules:**
+
 - Every job is **idempotent** (use natural keys, check-then-act).
 - Every job logs entry, exit, and outcome with the parent request's trace ID.
 - Failed jobs after max retries → DLQ topic with an alert.
@@ -279,6 +288,7 @@ export class UsersService {
 ## 10. Caching
 
 ### 10.1 Layers
+
 1. **CDN** — static assets, public endpoints.
 2. **HTTP cache** — `Cache-Control` headers + ETag for GET responses where appropriate.
 3. **Redis** — server-side compute cache (expensive queries, aggregates).
@@ -293,6 +303,7 @@ export class UsersService {
 Bump the suffix when the shape changes — never deploy a code change that produces a different payload under the same key.
 
 ### 10.3 Invalidation
+
 Cache **on read**, invalidate **on write**. Avoid pubsub-fanout invalidation until forced — bugs hide there.
 
 ---
@@ -300,12 +311,15 @@ Cache **on read**, invalidate **on write**. Avoid pubsub-fanout invalidation unt
 ## 11. Logging
 
 ```typescript
-this.logger.info({
-  event: 'user.signup',
-  userId: user.id,
-  email: dto.email,
-  source: dto.source,
-}, 'User signed up');
+this.logger.info(
+  {
+    event: 'user.signup',
+    userId: user.id,
+    email: dto.email,
+    source: dto.source,
+  },
+  'User signed up',
+);
 ```
 
 - Pino JSON logger.
@@ -331,12 +345,12 @@ See [Performance Playbook](../operations/performance.md).
 
 ## 13. Testing
 
-| Test type | Tool | What it covers |
-|---|---|---|
-| Unit | Vitest / Jest | Pure services, mocked deps |
+| Test type   | Tool                  | What it covers                             |
+| ----------- | --------------------- | ------------------------------------------ |
+| Unit        | Vitest / Jest         | Pure services, mocked deps                 |
 | Integration | Jest + Testcontainers | Service + real Prisma + ephemeral Postgres |
-| E2E | Jest + Supertest | HTTP in → HTTP out, full module wiring |
-| Contract | Pact (optional) | If multiple clients |
+| E2E         | Jest + Supertest      | HTTP in → HTTP out, full module wiring     |
+| Contract    | Pact (optional)       | If multiple clients                        |
 
 **Rule:** every public service method has a unit test for happy path + at least one failure path.
 
@@ -366,13 +380,10 @@ See [Testing Strategy](../conventions/testing.md).
 ```typescript
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: false });
-  app.useLogger(app.get(Logger));                  // Pino
+  app.useLogger(app.get(Logger)); // Pino
   app.useGlobalFilters(app.get(HttpExceptionFilter));
-  app.useGlobalInterceptors(
-    app.get(RequestIdInterceptor),
-    app.get(LoggingInterceptor),
-  );
-  app.useGlobalPipes(new ZodValidationPipe());     // schemas per-route still required
+  app.useGlobalInterceptors(app.get(RequestIdInterceptor), app.get(LoggingInterceptor));
+  app.useGlobalPipes(new ZodValidationPipe()); // schemas per-route still required
   app.enableCors({ origin: config.CORS_ORIGINS, credentials: true });
   app.use(helmet());
   app.use(cookieParser());

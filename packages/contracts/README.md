@@ -9,6 +9,7 @@ See [ADR-0007](../../docs/adr/0007-shared-zod-contracts.md) for the rationale.
 Without a shared package, the same shape gets defined three times: in the backend's validation layer, in the frontend's form schema, and in TypeScript types between them. Drift is inevitable, and drift between request validators and form validators is one of the highest-leverage sources of "works on my machine" bugs.
 
 With `@app/contracts`:
+
 - API uses the schemas in the Zod validation pipe.
 - Web app uses the schemas in `react-hook-form` (`zodResolver`).
 - Both sides import the same `Organization`, `CreateOrganizationBody`, etc. types — `z.infer` ensures they cannot drift.

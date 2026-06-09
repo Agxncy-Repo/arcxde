@@ -1,11 +1,9 @@
 // src/modules/auth/auth.service.ts
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from './auth.repository.js';
 import { NormalizedProfile } from './models/auth-registration.interface.js';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
-import * as argon2 from 'argon2';
-import { IndividualSignupBody, LoginWithCredentialsBody } from '@app/contracts';
 import { IdentityResolver } from './identity/identity.resolver.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '@prisma/client';
@@ -18,122 +16,32 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  /**
-   * Authenticates a user locally via native email and password credentials.
-   */
-  async loginWithEmailAndPassword(body: LoginWithCredentialsBody) {
-    const { email, password } = body;
-
-    // 1. Evaluate the credentials using our pure read-only decision engine
-    // For local login, provider is 'LOCAL' and providerId is their email address
-    const resolution = await this.identityResolver.resolveIdentity({
-      provider: 'EMAIL_PASSWORD',
-      providerId: email,
-      email: email,
-      emailVerified: false, // Assuming email is not yet verified
-      fullName: null,
-    });
-
-    // If the resolver returns NEW_USER or EXISTING_USER_NO_IDENTITY, it means
-    // this user does not have a native 'LOCAL' password identity set up.
-    if (resolution.type !== 'EXISTING_IDENTITY') {
-      throw new UnauthorizedException('Invalid email or password configuration.');
-    }
-
-    // 2. Fetch the target identity specifically to extract its credential hash
-    const identity = await this.authRepository.findIdentityByProvider('EMAIL_PASSWORD', email);
-
-    if (!identity || !identity.passwordHash) {
-      throw new UnauthorizedException('Invalid email or password configuration.');
-    }
-
-    // 3. Cryptographically verify the plain-text password against the Argon2id hash
-    const isPasswordValid = await argon2.verify(identity.passwordHash, password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password configuration.');
-    }
-
-    // 4. Verification complete! Generate, register, and return the session tokens
-    const tokens = await this.createAuthenticatedSession(resolution.userId);
-
-    return {
-      user: { id: resolution.userId, email },
-      ...tokens,
-    };
-  }
-  /**
-   * Registers a brand-new individual user using their email (passwordless).
-   * Leverages progressive onboarding by keeping profile data optional initially.
-   */
-  async registerWithEmailandPassword(
-    body: IndividualSignupBody,
-  ): Promise<{ user: { id: string; email: string }; accessToken: string; refreshToken: string }> {
-    const { email, firstName, lastName } = body;
-
-    // 1. Normalize signup into identity resolver format (no password provider)
-    const normalizedProfile = {
-      provider: 'EMAIL_PASSWORD' as const,
-      providerId: email,
-      email,
-      emailVerified: false,
-      fullName:
-        (firstName || '') && (lastName || '')
-          ? `${firstName?.trim() || ''} ${lastName?.trim() || ''}`.trim()
-          : firstName?.trim() || lastName?.trim() || null,
-    };
-
-    // 2. Evaluate existing identity graph state
-    const identityResolution = await this.identityResolver.resolveIdentity(normalizedProfile);
-
-    // 3. Block only true credential duplication
-    if (
-      identityResolution.type === 'EXISTING_IDENTITY' &&
-      identityResolution.provider === 'EMAIL_PASSWORD'
-    ) {
-      throw new BadRequestException(
-        'An account with this email already exists. Please sign in instead.',
-      );
-    }
-
-    let targetUserId: string;
-
-    // 4. Cross-provider account stitching
-    if (identityResolution.type === 'EXISTING_USER_NO_IDENTITY') {
-      targetUserId = identityResolution.userId;
-
-      await this.authRepository.linkCredentialsIdentityToExistingUser({
-        userId: targetUserId,
-        provider: 'EMAIL_PASSWORD',
-        providerId: email,
-        passwordHash: null, // Passwordless
-        providerEmail: email,
-      });
-    } else {
-      // 5. New user creation path
-      const newUser = await this.authRepository.createIndividualAccount({
-        email,
-        passwordHash: null, // Passwordless
-        firstName: firstName ?? null,
-        lastName: lastName ?? null,
-      });
-
-      targetUserId = newUser.id;
-    }
-
-    // 6. Create session + tokens
-    const tokens = await this.createAuthenticatedSession(targetUserId);
-    return {
-      user: { id: targetUserId, email },
-      ...tokens,
-    };
-  }
-
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use
   async registerOrLoginWithProvider(profile: NormalizedProfile) {
     var user = null;
     // 1. Attempt to resolve the incoming profile to an existing user identity or account
     const identityResult = await this.resolveAccount(profile);
+
+    // 🌲 UPDATE USER FLAGS BEFORE GENERATING THE SESSION 🌲
+    if (identityResult.isNewUser) {
+      // If the account was just created, ensure its flags bypass manual entry requirements
+      await this.authRepository.updateUserFlags(identityResult.userId, {
+        emailVerified: true,
+        registrationCompleted: true,
+        onboardingCompleted: false, // Ready for the questionnaire
+      });
+    } else {
+      // For returning users who might have previously dropped out on manual verification,
+      // logging in via OAuth retroactively completes their registration.
+      const existingUser = await this.authRepository.findUserById(identityResult.userId);
+
+      if (existingUser && (!existingUser.emailVerified || !existingUser.registrationCompleted)) {
+        await this.authRepository.updateUserFlags(identityResult.userId, {
+          emailVerified: true,
+          registrationCompleted: true,
+        });
+      }
+    }
 
     // 2. With a resolved user context, generate a new authenticated session with token rotation
     const tokens = await this.createAuthenticatedSession(identityResult.userId);

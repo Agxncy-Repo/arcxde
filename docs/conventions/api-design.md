@@ -22,15 +22,15 @@ We follow **REST**, pragmatic over purist. Consistency is the goal — a develop
 - Sub-resources: `/organizations/{orgId}/members`.
 - Avoid deep nesting beyond two levels. Use query params or top-level resources instead.
 
-| Want | Path | Method |
-|---|---|---|
-| List | `/orders` | GET |
-| Get one | `/orders/{id}` | GET |
-| Create | `/orders` | POST |
-| Replace | `/orders/{id}` | PUT |
-| Patch | `/orders/{id}` | PATCH |
-| Delete | `/orders/{id}` | DELETE |
-| Action | `/orders/{id}:cancel` | POST |
+| Want    | Path                  | Method |
+| ------- | --------------------- | ------ |
+| List    | `/orders`             | GET    |
+| Get one | `/orders/{id}`        | GET    |
+| Create  | `/orders`             | POST   |
+| Replace | `/orders/{id}`        | PUT    |
+| Patch   | `/orders/{id}`        | PATCH  |
+| Delete  | `/orders/{id}`        | DELETE |
+| Action  | `/orders/{id}:cancel` | POST   |
 
 Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/orders/{id}/cancel`, which reads as a sub-resource.
 
@@ -55,6 +55,7 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 ## 5. Response format
 
 ### Single resource
+
 ```json
 {
   "data": {
@@ -68,9 +69,12 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 ```
 
 ### Collection (cursor pagination)
+
 ```json
 {
-  "data": [ /* items */ ],
+  "data": [
+    /* items */
+  ],
   "pagination": {
     "nextCursor": "ord_xyz",
     "hasMore": true,
@@ -80,10 +84,12 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 ```
 
 ### Empty data
+
 - Single resource not found → `404` with error envelope, **not** `{ data: null }`.
 - Empty collection → `200` with `data: []`.
 
 ### Field rules
+
 - Money: stringified decimal + `currency` field. Never floats.
 - Timestamps: ISO-8601 UTC, suffix `Z`. Always `*At` suffix (`createdAt`, `expiresAt`).
 - Enums: UPPER_SNAKE strings — `PENDING`, `IN_PROGRESS`.
@@ -107,21 +113,22 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 }
 ```
 
-| HTTP | When |
-|---|---|
-| 400 | Malformed input that wasn't caught by validation |
-| 401 | No / invalid credentials |
-| 403 | Authenticated but not authorized |
-| 404 | Resource not found, or hidden from this user |
-| 409 | Conflict (e.g., unique constraint) |
-| 410 | Resource permanently gone |
-| 412 | Precondition failed (idempotency conflict) |
-| 422 | Validation failed — body shape was right, values weren't |
-| 429 | Rate limited; include `Retry-After` |
-| 500 | Server bug |
-| 503 | Dependency down |
+| HTTP | When                                                     |
+| ---- | -------------------------------------------------------- |
+| 400  | Malformed input that wasn't caught by validation         |
+| 401  | No / invalid credentials                                 |
+| 403  | Authenticated but not authorized                         |
+| 404  | Resource not found, or hidden from this user             |
+| 409  | Conflict (e.g., unique constraint)                       |
+| 410  | Resource permanently gone                                |
+| 412  | Precondition failed (idempotency conflict)               |
+| 422  | Validation failed — body shape was right, values weren't |
+| 429  | Rate limited; include `Retry-After`                      |
+| 500  | Server bug                                               |
+| 503  | Dependency down                                          |
 
 ### Validation errors (422)
+
 ```json
 {
   "error": {
@@ -139,6 +146,7 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 ```
 
 ### Error codes
+
 - UPPER_SNAKE.
 - Stable across versions. Adding a new code is non-breaking; renaming is breaking.
 - Documented in OpenAPI + a central error code reference.
@@ -165,6 +173,7 @@ Actions that don't fit CRUD use the `:verb` suffix (Google AIP-136). Not `/order
 ## 9. Idempotency
 
 All `POST`/`PATCH`/`DELETE` accept an `Idempotency-Key` header.
+
 - Key + auth identity is the dedup tuple.
 - First request: process, store the response for 24h, return it.
 - Subsequent request with same key: return the stored response **without** re-running side effects.
@@ -175,6 +184,7 @@ All `POST`/`PATCH`/`DELETE` accept an `Idempotency-Key` header.
 ## 10. Rate limiting
 
 Returns `429 Too Many Requests` with:
+
 - `Retry-After: <seconds>`
 - `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers.
 
@@ -219,6 +229,7 @@ Returns `429 Too Many Requests` with:
 ## 15. Documenting endpoints
 
 Every endpoint has, in OpenAPI:
+
 - A unique `operationId` (camelCase verb-noun: `createOrder`).
 - Tag(s) by module.
 - Description in plain English.

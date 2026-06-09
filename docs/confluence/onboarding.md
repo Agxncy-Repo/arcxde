@@ -210,14 +210,14 @@ If a hire isn't ramping after 60 days, that's a manager problem to solve, not a 
 
 ## 10. Common pitfalls
 
-| Pitfall | What to do instead |
-|---|---|
+| Pitfall                                                   | What to do instead                                                                              |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | New hire is stuck on environment setup but doesn't say so | Buddy checks in proactively; new hire is told explicitly that asking for help is the right move |
-| Manager dumps tribal knowledge in one giant meeting | Spread context over weeks; let the new hire ask when they need it |
-| New hire spends week 1 reading and nothing else | Ship the starter PR by end of week 1 even if it's tiny — momentum matters |
-| First real task is too ambiguous | Manager scopes the first 2–3 tasks tightly; ambiguity comes later |
-| New hire is afraid to ask "stupid" questions | Buddy normalizes it: "the only stupid question is the unasked one that becomes a bug" |
-| New hire is shielded from on-call and prod | Shadow early; production is part of the job |
+| Manager dumps tribal knowledge in one giant meeting       | Spread context over weeks; let the new hire ask when they need it                               |
+| New hire spends week 1 reading and nothing else           | Ship the starter PR by end of week 1 even if it's tiny — momentum matters                       |
+| First real task is too ambiguous                          | Manager scopes the first 2–3 tasks tightly; ambiguity comes later                               |
+| New hire is afraid to ask "stupid" questions              | Buddy normalizes it: "the only stupid question is the unasked one that becomes a bug"           |
+| New hire is shielded from on-call and prod                | Shadow early; production is part of the job                                                     |
 
 ---
 
@@ -226,6 +226,7 @@ If a hire isn't ramping after 60 days, that's a manager problem to solve, not a 
 Copy this into a personal doc on Day 1 and tick as you go.
 
 ### Week 1
+
 - [ ] Met the team
 - [ ] Local environment running
 - [ ] Read the README and architecture overview
@@ -233,12 +234,14 @@ Copy this into a personal doc on Day 1 and tick as you go.
 - [ ] First code review left
 
 ### Week 2
+
 - [ ] Sprint planning attended
 - [ ] On-call shadow done
 - [ ] Test written and shipped
 - [ ] Read 5 ADRs
 
 ### Month 1
+
 - [ ] 3+ PRs shipped
 - [ ] 5+ PRs reviewed
 - [ ] Runbooks read
@@ -246,11 +249,13 @@ Copy this into a personal doc on Day 1 and tick as you go.
 - [ ] Identified one friction point and either fixed it or filed an issue
 
 ### Month 2
+
 - [ ] Owned a feature end-to-end
 - [ ] On-call as secondary
 - [ ] Contributed to an ADR
 
 ### Month 3
+
 - [ ] On-call as primary
 - [ ] 90-day check-in done
 - [ ] Growth plan for next 6 months

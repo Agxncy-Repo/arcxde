@@ -9,7 +9,6 @@
  *   - Small — enough to log in and click around. Heavy fixtures live in tests, not here.
  */
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
@@ -52,8 +51,9 @@ async function main(): Promise<void> {
     create: {
       email: 'alice@acme.test',
       fullName: 'Alice Admin',
-      emailVerified: true,
       emailVerifiedAt: new Date(),
+      emailVerified: true,
+      registrationCompleted: true,
     },
   });
 
@@ -63,8 +63,30 @@ async function main(): Promise<void> {
     create: {
       email: 'bob@acme.test',
       fullName: 'Bob Member',
-      emailVerified: true,
       emailVerifiedAt: new Date(),
+      emailVerified: true,
+      registrationCompleted: true,
+    },
+  });
+
+  const aliceIdentity = await prisma.identity.upsert({
+    where: { userId_provider: { userId: alice.id, provider: 'EMAIL_PASSWORD' } },
+    update: {},
+    create: {
+      userId: alice.id,
+      provider: 'EMAIL_PASSWORD',
+      passwordHash: 'sjdjkskskskksksk', // Not a real hash, but it won't be used for login in dev
+      providerId: 'alice@acme.test',
+    },
+  });
+  const bobIdentity = await prisma.identity.upsert({
+    where: { userId_provider: { userId: bob.id, provider: 'EMAIL_PASSWORD' } },
+    update: {},
+    create: {
+      userId: bob.id,
+      provider: 'EMAIL_PASSWORD',
+      passwordHash: 'sjdjkskskskksksk', // Not a real hash, but it won't be used for login in dev
+      providerId: 'bob@acme.test',
     },
   });
 
