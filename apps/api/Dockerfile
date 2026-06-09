@@ -31,12 +31,12 @@ FROM node:22-alpine AS builder
 WORKDIR /repo
 RUN corepack enable
 
+# Now copy source
+COPY . .
+
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /repo/packages ./packages
-
-# Now copy source
-COPY . .
 
 # Generate Prisma client (uses apps/api/prisma/schema.prisma)
 RUN pnpm --filter @app/api db:generate
