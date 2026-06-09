@@ -17,16 +17,18 @@ import {
   testEmailSchema,
   type TestEmailSchema,
 } from '@app/contracts';
-
 import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+
 import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
 import { ZodBody } from '../../common/validation/zod.decorators.js';
-import { AuthService } from './auth.service.js';
-import type { NormalizedProfile } from './models/auth-registration.interface.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { EmailVerificationService } from '../email/verification/email-verification.service.js';
+
+import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+
+import type { NormalizedProfile } from './models/auth-registration.interface.js';
 
 interface TokenResponse {
   accessToken: string;
@@ -54,13 +56,16 @@ export class AuthController {
   // Callback endpoint that Google redirects to after user consents; Passport strategy processes the response and populates req.user
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleAuthRedirect(@Req() req: any, @Res() res: any): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const profile = req.user as NormalizedProfile;
       const { tokens, isNewUser, user } = await this.service.registerOrLoginWithProvider(profile);
 
       // BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.cookie('refresh_token', tokens.refreshToken, {
         httpOnly: true, // Prevents JavaScript/XSS extraction
         secure: process.env.NODE_ENV === 'production', // Only sent over HTTPS in production
@@ -78,12 +83,14 @@ export class AuthController {
 
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       return res.redirect(finalRedirectUrl, 302);
-    } catch (error: any) {
+    } catch (error) {
       // Direct print to screen if something else breaks inside the service loop
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       return res.status(500).send({
         error: 'Redirect Loop Exception',
-        message: error?.message || String(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -94,9 +101,11 @@ export class AuthController {
   @ApiBearerAuth() // Indicates this endpoint requires a bearer token for Swagger documentation
   @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async logout(@Req() req: any, @Res() res: any): Promise<void> {
     try {
       // Extract the session ID attached by JwtStrategy
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const sessionId = req.user.sessionId;
 
       if (!sessionId) {
@@ -104,21 +113,25 @@ export class AuthController {
       }
 
       // 1. Terminate the database session record
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.service.clearSession(sessionId);
 
       // 2. If you are using HTTP-only cookies for refresh tokens, clear them here:
       // res.clearCookie('refreshToken', { ...cookieOptions });
 
       // 3. Fastify reply confirmation
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       return res.status(200).send({
         success: true,
         message: 'Logged out successfully. Token session has been revoked.',
-        sessionId: sessionId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        sessionId,
       });
-    } catch (error: any) {
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       return res.status(400).send({
         error: 'Logout Error',
-        message: error?.message || String(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   }

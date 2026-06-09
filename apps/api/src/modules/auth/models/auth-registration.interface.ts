@@ -1,4 +1,4 @@
-import { IdentityProvider } from '@prisma/client';
+import type { IdentityProvider } from '@prisma/client';
 export interface CreateIndividualInput {
   email: string;
   passwordHash: string | null;

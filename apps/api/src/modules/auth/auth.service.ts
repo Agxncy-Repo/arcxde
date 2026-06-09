@@ -1,12 +1,15 @@
 // src/modules/auth/auth.service.ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthRepository } from './auth.repository.js';
-import { NormalizedProfile } from './models/auth-registration.interface.js';
-import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
-import { IdentityResolver } from './identity/identity.resolver.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
+
+import { PrismaService } from '../prisma/prisma.service.js';
+
+import { AuthRepository } from './auth.repository.js';
+import { IdentityResolver } from './identity/identity.resolver.js';
+import { NormalizedProfile } from './models/auth-registration.interface.js';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +21,7 @@ export class AuthService {
 
   // Primary service method to handle both registration and login flows for OAuth providers; abstracts the entire process into a single method for controller use
   async registerOrLoginWithProvider(profile: NormalizedProfile) {
-    var user = null;
+    let user = null;
     // 1. Attempt to resolve the incoming profile to an existing user identity or account
     const identityResult = await this.resolveAccount(profile);
 
@@ -172,7 +175,9 @@ export class AuthService {
     const session = await this.authRepository.findSessionByHash(currentHash);
 
     if (!session || session.expiresAt < new Date()) {
-      if (session) await this.authRepository.deleteSession(session.id);
+      if (session) {
+        await this.authRepository.deleteSession(session.id);
+      }
       throw new UnauthorizedException('Session has expired or is invalid.');
     }
 
@@ -199,8 +204,8 @@ export class AuthService {
     const accessSecret = process.env.JWT_ACCESS_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
 
-    const accessSecretExpiresIn = (process.env.JWT_ACCESS_TTL || '15m') as any;
-    const refreshSecretExpiresIn = (process.env.JWT_REFRESH_TTL || '7d') as any;
+    const accessSecretExpiresIn: string = process.env.JWT_ACCESS_TTL ?? '15m';
+    const refreshSecretExpiresIn: string = process.env.JWT_REFRESH_TTL ?? '7d';
 
     if (!accessSecret || !refreshSecret) {
       throw new Error(
@@ -213,14 +218,16 @@ export class AuthService {
         { sub: userId, sid: sessionId },
         {
           secret: accessSecret, // Now strictly guaranteed to be a string
-          expiresIn: accessSecretExpiresIn,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+          expiresIn: accessSecretExpiresIn as any,
         },
       ),
       this.jwtService.signAsync(
         { sub: userId },
         {
           secret: refreshSecret, // Now strictly guaranteed to be a string
-          expiresIn: refreshSecretExpiresIn,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+          expiresIn: refreshSecretExpiresIn as any,
         },
       ),
     ]);

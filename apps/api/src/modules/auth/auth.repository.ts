@@ -1,8 +1,10 @@
 // src/modules/auth/auth.repository.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js'; // Adjust path based on mono setup
 import { IdentityProvider, type User, type Identity, type Session } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+
+import { PrismaService } from '../prisma/prisma.service.js'; // Adjust path based on mono setup
+
 import {
   CreateIndividualInput,
   NormalizedProfile,
@@ -217,7 +219,7 @@ export class AuthRepository {
   // 8. Session Persistence Layer tracking (hashed token operations)
   async createSession(data: SessionCreationData) {
     // 1. Build the baseline object with required fields
-    const sessionPayload: any = {
+    const sessionPayload = {
       userId: data.userId,
       tokenHash: data.tokenHash,
       expiresAt: data.expiresAt,

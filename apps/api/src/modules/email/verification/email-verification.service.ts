@@ -1,12 +1,14 @@
+import * as crypto from 'crypto';
+
 import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
   InternalServerErrorException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email.service';
-import * as crypto from 'crypto';
 
 @Injectable()
 export class EmailVerificationService {
@@ -155,7 +157,7 @@ export class EmailVerificationService {
 
       // Return the secure temporary registration token to the controller layer
       return { email: formattedEmail, registrationToken, status };
-    } catch (transactionError: any) {
+    } catch {
       // If the token was valid but the database transaction choked due to a dead-lock or concurrency fail,
       // log an attempt against the token to protect the route from endless spamming.
       await this.prisma.verificationToken.update({
@@ -288,9 +290,9 @@ export class EmailVerificationService {
       // 4. Dispatch via the base EmailService instance
       await this.emailService.sendVerificationLink(formattedEmail, verificationLink);
       return { registrationToken };
-    } catch (error: any) {
+    } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to execute verification test pipeline inside verification service: ${error?.message || String(error)}`,
+        `Failed to execute verification test pipeline inside verification service: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

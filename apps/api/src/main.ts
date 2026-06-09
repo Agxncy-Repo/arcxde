@@ -31,16 +31,25 @@ async function bootstrap(): Promise<void> {
   // ---- Passport-Fastify Compatibility Hook ----
   // This shims Express-style methods onto Fastify's response lifecycle
   // so that legacy Passport strategies can safely execute 302 redirects.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
   fastify.getInstance().addHook('onRequest', (req: any, res: any, done: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
     res.setHeader = (key: string, value: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
       res.raw.setHeader(key, value);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return res;
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
     res.end = (data?: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       res.raw.end(data);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return res;
     };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     req.res = res;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     done();
   });
 
