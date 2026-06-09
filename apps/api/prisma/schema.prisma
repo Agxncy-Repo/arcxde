@@ -114,9 +114,7 @@ model User {
   lessonProgress   UserLessonProgress[]
   onboarding       UserOnboarding?
   literaryAssessment UserLiteraryAssessment?
-
-  onboardingResult UserOnboardingResult?
-  verificationTokens  VerificationToken?
+  verificationToken  VerificationToken?
   verificationSessions  EmailVerificationSession[]
   @@index([createdAt])
   @@map("users")
