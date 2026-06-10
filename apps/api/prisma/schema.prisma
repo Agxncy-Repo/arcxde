@@ -113,6 +113,7 @@ model User {
   assessmentAttempts AssessmentAttempt[]
   lessonProgress   UserLessonProgress[]
   onboarding       UserOnboarding?
+  onboardingResult UserOnboardingResult?
   literaryAssessment UserLiteraryAssessment?
   verificationToken  VerificationToken?
   verificationSessions  EmailVerificationSession[]
@@ -220,10 +221,11 @@ model OnboardingQuestion {
   questionKey    String   @map("question_key")    // stable identifier, e.g., "ai_lit_01"
   text           String   @db.Text               // displayed question text
   description    String?  @db.Text               // optional helper text
-  options        Json     // array of option labels, e.g., ["A. Option 1", "B. Option 2", ...]
-  correctAnswer  String   @map("correct_answer") @db.VarChar(10) // the correct answer letter (e.g., "A", "B", "C", "D")
+  options        Json     // array of option labels, e.g., ["I rarely use AI", "I use AI occasionally", ...]
   order          Int      @default(0)
   isActive       Boolean  @default(true) @map("is_active")
+  questionWeight Float    @default(1.0) @map("question_weight") // overall multiplier for this question
+  optionWeights  Json     @default("[]") @map("option_weights") // per-option scores, same length as options
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -263,6 +265,20 @@ model UserOnboardingAnswer {
   @@index([onboardingId])
   @@index([questionId])
   @@map("user_onboarding_answers")
+}
+
+// Computed readiness profile derived from the user's weighted answers
+model UserOnboardingResult {
+  id              String   @id @default(dbgenerated("'ubr_' || gen_random_uuid()::text"))
+  userId          String   @unique @map("user_id")
+  totalScore      Float    @map("total_score")
+  normalizedScore Float    @map("normalized_score")
+  profileKey      String?  @map("profile_key") // e.g., "beginner", "intermediate", "advanced"
+  computedAt      DateTime @default(now()) @map("computed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_onboarding_results")
 }
 
 // Literary Assessment Questions (AI Literacy Test)
