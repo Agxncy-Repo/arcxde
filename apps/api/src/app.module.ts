@@ -10,12 +10,12 @@ import { ClsModule } from 'nestjs-cls';
 
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { AppLoggerModule } from './common/logger/app-logger.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { EmailModule } from './modules/email/email.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
-import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
-import { EmailModule } from './modules/email/email.module.js';
 import { SignupModule } from './modules/signup/signup.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 

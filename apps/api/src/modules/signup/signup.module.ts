@@ -1,9 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
+
+import { AuthModule } from '../auth/auth.module';
+import { EmailModule } from '../email/email.module';
+import { PrismaModule } from '../prisma/prisma.module';
+
 import { SignupController } from './signup.controller';
 import { SignupService } from './signup.service';
-import { PrismaModule } from '../prisma/prisma.module';
-import { EmailModule } from '../email/email.module';
-import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [

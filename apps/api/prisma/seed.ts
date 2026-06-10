@@ -91,7 +91,6 @@ async function main(): Promise<void> {
   });
 
   const analystQuestions = [
-    // Analyst questions
     {
       role: 'analyst',
       questionKey: 'ai_usage',
@@ -103,8 +102,7 @@ async function main(): Promise<void> {
         'AI is central to my workflow',
         'I help shape AI-enabled products or workflows',
       ],
-      optionWeights: [0, 0.25, 0.5, 0.75, 1.0],
-      questionWeight: 1.5,
+      correctAnswer: 'A',
       order: 1,
     },
     {
@@ -118,8 +116,7 @@ async function main(): Promise<void> {
         'Financial or regulated outcomes',
         'High-impact or sensitive decisions',
       ],
-      optionWeights: [0.2, 0.4, 0.6, 0.8, 1.0],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 2,
     },
     {
@@ -133,8 +130,7 @@ async function main(): Promise<void> {
         'Health or sensitive personal data',
         'Mixed or multiple data types',
       ],
-      optionWeights: [0.2, 0.4, 0.8, 1.0, 0.6],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 3,
     },
     {
@@ -149,13 +145,11 @@ async function main(): Promise<void> {
         'Building better AI-enabled products',
         'Career development',
       ],
-      optionWeights: [0.4, 0.6, 0.8, 1.0, 1.0, 0.5],
-      questionWeight: 0.5,
+      correctAnswer: 'A',
       order: 4,
     },
   ];
 
-  // ---- Developer questions ----
   const developerQuestions = [
     {
       role: 'developer',
@@ -168,8 +162,7 @@ async function main(): Promise<void> {
         'I build features that use AI/ML',
         'I architect AI-powered systems',
       ],
-      optionWeights: [0, 0.25, 0.5, 0.75, 1.0],
-      questionWeight: 1.5,
+      correctAnswer: 'A',
       order: 1,
     },
     {
@@ -183,8 +176,7 @@ async function main(): Promise<void> {
         'Cost and performance',
         'Ethical and responsible AI',
       ],
-      optionWeights: [0.3, 0.6, 0.7, 0.8, 1.0],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 2,
     },
     {
@@ -198,13 +190,11 @@ async function main(): Promise<void> {
         'Evaluating AI model outputs',
         'AI security and safety',
       ],
-      optionWeights: [0.3, 0.6, 0.8, 0.7, 1.0],
-      questionWeight: 0.5,
+      correctAnswer: 'A',
       order: 3,
     },
   ];
 
-  // ---- Strategist questions ----
   const strategistQuestions = [
     {
       role: 'strategist',
@@ -217,8 +207,7 @@ async function main(): Promise<void> {
         'We are actively piloting AI initiatives',
         'AI is central to our strategy',
       ],
-      optionWeights: [0, 0.25, 0.5, 0.75, 1.0],
-      questionWeight: 1.5,
+      correctAnswer: 'A',
       order: 1,
     },
     {
@@ -232,8 +221,7 @@ async function main(): Promise<void> {
         'Competitive pressure',
         'Risk and compliance',
       ],
-      optionWeights: [0.3, 0.5, 0.7, 0.5, 0.8],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 2,
     },
     {
@@ -247,13 +235,11 @@ async function main(): Promise<void> {
         'AI governance and strategy',
         'Keeping up with AI trends',
       ],
-      optionWeights: [0.3, 0.5, 0.7, 0.9, 0.4],
-      questionWeight: 0.5,
+      correctAnswer: 'A',
       order: 3,
     },
   ];
 
-  // ---- Designer questions ----
   const designerQuestions = [
     {
       role: 'designer',
@@ -266,8 +252,7 @@ async function main(): Promise<void> {
         'I design AI-powered interfaces',
         'I prototype with AI-generated assets',
       ],
-      optionWeights: [0, 0.25, 0.5, 0.75, 0.6],
-      questionWeight: 1.5,
+      correctAnswer: 'A',
       order: 1,
     },
     {
@@ -281,8 +266,7 @@ async function main(): Promise<void> {
         'Measuring user experience',
         'Integrating AI feedback loops',
       ],
-      optionWeights: [0.3, 0.5, 0.7, 0.6, 0.9],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 2,
     },
     {
@@ -296,13 +280,11 @@ async function main(): Promise<void> {
         'Evaluating AI-powered UX',
         'Accessibility in AI products',
       ],
-      optionWeights: [0.5, 0.6, 0.7, 0.8, 0.9],
-      questionWeight: 0.5,
+      correctAnswer: 'A',
       order: 3,
     },
   ];
 
-  // ---- Manager questions ----
   const managerQuestions = [
     {
       role: 'manager',
@@ -315,8 +297,7 @@ async function main(): Promise<void> {
         'AI is integrated into our workflows',
         'We build AI‑enabled products',
       ],
-      optionWeights: [0, 0.2, 0.5, 0.75, 1.0],
-      questionWeight: 1.5,
+      correctAnswer: 'A',
       order: 1,
     },
     {
@@ -330,8 +311,7 @@ async function main(): Promise<void> {
         'Measuring productivity gains',
         'Ethical and legal risks',
       ],
-      optionWeights: [0.4, 0.6, 0.4, 0.7, 0.9],
-      questionWeight: 1.0,
+      correctAnswer: 'A',
       order: 2,
     },
     {
@@ -345,9 +325,200 @@ async function main(): Promise<void> {
         'Creating AI policies and guidelines',
         'Budgeting for AI tools',
       ],
-      optionWeights: [0.4, 0.6, 0.7, 0.8, 0.5],
-      questionWeight: 0.5,
+      correctAnswer: 'A',
       order: 3,
+    },
+  ];
+
+  // ---- AI Literacy Assessment Questions ----
+  const literacyQuestions = [
+    {
+      questionKey: 'ai_lit_01',
+      text: 'What do foundation models generate responses from?',
+      options: ['Explicit rules', 'Training data patterns', 'User instructions'],
+      correctAnswer: 'B',
+      order: 1,
+    },
+    {
+      questionKey: 'ai_lit_02',
+      text: 'What is the term for when an AI generates plausible-sounding but false information?',
+      options: ['Bias', 'Hallucination', 'Variance'],
+      correctAnswer: 'B',
+      order: 2,
+    },
+    {
+      questionKey: 'ai_lit_03',
+      text: 'Why are AI outputs probabilistic rather than deterministic?',
+      options: [
+        'AI outputs are probabilistic by design',
+        'Because of randomness in training',
+        'Due to system errors',
+      ],
+      correctAnswer: 'A',
+      order: 3,
+    },
+    {
+      questionKey: 'ai_lit_04',
+      text: 'What do AI systems fundamentally do?',
+      options: [
+        'Follow explicit rules',
+        'Predict probable next outputs',
+        'Retrieve pre-stored answers',
+      ],
+      correctAnswer: 'B',
+      order: 4,
+    },
+    {
+      questionKey: 'ai_lit_05',
+      text: 'How can you best reduce hallucinations in AI outputs?',
+      options: ['Increase temperature', 'Use structured outputs', 'Remove context'],
+      correctAnswer: 'B',
+      order: 5,
+    },
+    {
+      questionKey: 'ai_lit_06',
+      text: 'What is the best approach to ensure AI uses current information?',
+      options: [
+        'Train new models daily',
+        'Retrieve from trusted systems at runtime',
+        'Accept all outputs as current',
+      ],
+      correctAnswer: 'B',
+      order: 6,
+    },
+    {
+      questionKey: 'ai_lit_07',
+      text: 'What is automation bias in the context of AI systems?',
+      options: [
+        'Preference for automated systems',
+        'Automation bias and lack of oversight',
+        'Systems becoming slower',
+      ],
+      correctAnswer: 'A',
+      order: 7,
+    },
+    {
+      questionKey: 'ai_lit_08',
+      text: 'Which is the most important control for responsible AI deployment?',
+      options: [
+        'Removing all AI features',
+        'Tool permissions and approval controls',
+        'Never using AI',
+      ],
+      correctAnswer: 'B',
+      order: 8,
+    },
+    {
+      questionKey: 'ai_lit_09',
+      text: 'What should developers review before deploying AI features?',
+      options: ['Only code quality', 'Privacy requirements', 'Only speed metrics'],
+      correctAnswer: 'B',
+      order: 9,
+    },
+    {
+      questionKey: 'ai_lit_10',
+      text: 'What is the key principle for handling user data in AI systems?',
+      options: [
+        'Collect all available data',
+        'Only provide necessary information',
+        'Share all data publicly',
+      ],
+      correctAnswer: 'B',
+      order: 10,
+    },
+    {
+      questionKey: 'ai_lit_11',
+      text: 'Why is privacy governance important for AI systems?',
+      options: [
+        'It is not important',
+        'Privacy obligations and data rights',
+        'Only for compliance',
+      ],
+      correctAnswer: 'B',
+      order: 11,
+    },
+    {
+      questionKey: 'ai_lit_12',
+      text: 'What is a key risk when AI has access to sensitive user data?',
+      options: [
+        'Data becomes faster',
+        'Potential exposure of sensitive information',
+        'No risks exist',
+      ],
+      correctAnswer: 'B',
+      order: 12,
+    },
+    {
+      questionKey: 'ai_lit_13',
+      text: 'What determines if an AI system is safe to deploy?',
+      options: [
+        'Only technical performance',
+        'Accuracy alone does not determine risk',
+        'Speed of responses',
+      ],
+      correctAnswer: 'B',
+      order: 13,
+    },
+    {
+      questionKey: 'ai_lit_14',
+      text: 'What can cause AI systems to produce discriminatory outcomes?',
+      options: ['Low accuracy', 'Automation bias', 'User preferences'],
+      correctAnswer: 'B',
+      order: 14,
+    },
+    {
+      questionKey: 'ai_lit_15',
+      text: 'How should performance disparities across user groups be addressed?',
+      options: ['Ignore them', 'Investigate performance disparities', 'Document but not fix'],
+      correctAnswer: 'B',
+      order: 15,
+    },
+    {
+      questionKey: 'ai_lit_16',
+      text: 'Why is ongoing evaluation with production data important?',
+      options: [
+        'It is not important',
+        'Conduct ongoing evaluation using production data',
+        'Only test once',
+      ],
+      correctAnswer: 'B',
+      order: 16,
+    },
+    {
+      questionKey: 'ai_lit_17',
+      text: 'What should be assessed when evaluating AI system risks?',
+      options: ['Only technical metrics', 'What harm could occur', 'Only user feedback'],
+      correctAnswer: 'B',
+      order: 17,
+    },
+    {
+      questionKey: 'ai_lit_18',
+      text: 'Who ultimately bears responsibility for AI system outcomes?',
+      options: ['Only the AI model', 'Deployers remain responsible', 'Only end users'],
+      correctAnswer: 'B',
+      order: 18,
+    },
+    {
+      questionKey: 'ai_lit_19',
+      text: 'What matters most when assessing AI system impact?',
+      options: [
+        'Only theoretical metrics',
+        'Real-world outcomes and user impact',
+        'Only model benchmarks',
+      ],
+      correctAnswer: 'B',
+      order: 19,
+    },
+    {
+      questionKey: 'ai_lit_20',
+      text: 'What is the goal of responsible AI governance?',
+      options: [
+        'Eliminate all AI usage',
+        'Balancing usefulness, reliability, oversight, privacy and user impact',
+        'Maximize speed',
+      ],
+      correctAnswer: 'B',
+      order: 20,
     },
   ];
 
@@ -370,8 +541,7 @@ async function main(): Promise<void> {
     create: { userId: alice.id, organizationId: lumon.id, role: 'admin' },
   });
 
-  // Upsert all questions
-  const allQuestions = [
+  const allOnboardingQuestions = [
     ...analystQuestions,
     ...developerQuestions,
     ...strategistQuestions,
@@ -379,10 +549,30 @@ async function main(): Promise<void> {
     ...managerQuestions,
   ];
 
-  for (const q of allQuestions) {
+  // Clear existing onboarding data
+  await prisma.userOnboardingAnswer.deleteMany({});
+  await prisma.userOnboarding.deleteMany({});
+  await prisma.onboardingQuestion.deleteMany({});
+
+  // Seed role-based onboarding questions
+  for (const q of allOnboardingQuestions) {
     await prisma.onboardingQuestion.upsert({
       where: { role_questionKey: { role: q.role, questionKey: q.questionKey } },
-      update: { optionWeights: q.optionWeights, questionWeight: q.questionWeight },
+      update: {},
+      create: q,
+    });
+  }
+
+  // Clear existing literary assessment data
+  await prisma.userLiteraryAnswer.deleteMany({});
+  await prisma.userLiteraryAssessment.deleteMany({});
+  await prisma.literaryQuestion.deleteMany({});
+
+  // Seed AI literacy assessment questions
+  for (const q of literacyQuestions) {
+    await prisma.literaryQuestion.upsert({
+      where: { questionKey: q.questionKey },
+      update: {},
       create: q,
     });
   }
@@ -390,6 +580,8 @@ async function main(): Promise<void> {
   console.log('✅ Seed complete');
   console.log('   Organizations:', { acme: acme.id, lumon: lumon.id });
   console.log('   Users:        ', { alice: alice.id, bob: bob.id });
+  console.log('   Onboarding questions:', allOnboardingQuestions.length);
+  console.log('   Literary assessment questions:', literacyQuestions.length);
 }
 
 main()

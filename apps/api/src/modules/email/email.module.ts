@@ -1,6 +1,7 @@
 // apps/api/src/modules/email/email.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+
 import { EmailService } from './email.service';
 import { EmailVerificationService } from './verification/email-verification.service';
 

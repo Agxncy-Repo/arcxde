@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+
 import { AuthRepository } from '../auth.repository';
 import { IdentityResolution, NormalizedProfile } from '../models/auth-registration.interface.js';
 

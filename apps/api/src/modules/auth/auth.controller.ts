@@ -3,10 +3,10 @@
  *
  * Thin HTTP layer:
  * - Validates inputs with @ZodBody / @ZodQuery / @ZodParam (single source of
- * truth: @app/contracts).
+ *   truth: @app/contracts).
  * - Calls the service. Does NOT contain business logic.
  * - Lets DomainError propagate; the global HttpExceptionFilter takes care
- * of mapping to the envelope.
+ *   of mapping to the envelope.
  *
  * Response shapes intentionally match the contract envelopes in
  * docs/conventions/api-design.md.
@@ -18,15 +18,19 @@ import {
   type TestEmailSchema,
 } from '@app/contracts';
 
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+
 import { ApiZodBody } from '../../common/swagger/zod-swagger.decorator.js';
 import { ZodBody } from '../../common/validation/zod.decorators.js';
-import { AuthService } from './auth.service.js';
-import type { NormalizedProfile } from './models/auth-registration.interface.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { EmailVerificationService } from '../email/verification/email-verification.service.js';
+
+import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+
+import type { NormalizedProfile } from './models/auth-registration.interface.js';
 
 interface TokenResponse {
   accessToken: string;
@@ -47,20 +51,26 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiResponse({ status: 200, description: 'Initiates Google OAuth flow.' })
-  async googleAuth(@Req() _req: unknown): Promise<void> {
+  async googleAuth(@Req() _req: FastifyRequest): Promise<void> {
     // Triggers the initial OAuth redirect handshake handled by Passport Google Strategy
   }
 
   // Callback endpoint that Google redirects to after user consents; Passport strategy processes the response and populates req.user
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: any, @Res() res: any): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async googleAuthRedirect(
+    @Req() req: FastifyRequest & { user?: unknown },
+    @Res() res: FastifyReply,
+  ): Promise<void> {
     try {
       // req.user is populated by Passport safely regardless of the underlying driver
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const profile = req.user as NormalizedProfile;
       const { tokens, isNewUser, user } = await this.service.registerOrLoginWithProvider(profile);
 
       // BAKE THE REFRESH TOKEN INTO A HIGH-SECURITY COOKIE
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.cookie('refresh_token', tokens.refreshToken, {
         httpOnly: true, // Prevents JavaScript/XSS extraction
         secure: process.env.NODE_ENV === 'production', // Only sent over HTTPS in production
@@ -78,13 +88,16 @@ export class AuthController {
 
       //Redirect the user to the appropriate frontend URL with their session tokens in query params; frontend will handle storing tokens securely and redirecting to the right place
       // Will direct to dashboard if existing user, or onboarding flow if new user, Tokens are included in query params for the frontend to capture and store securely (e.g. HttpOnly cookies or secure storage).
-      return res.redirect(finalRedirectUrl, 302);
-    } catch (error: any) {
+      res.redirect(finalRedirectUrl, 302);
+      return;
+    } catch (error: unknown) {
       // Direct print to screen if something else breaks inside the service loop
-      return res.status(500).send({
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).send({
         error: 'Redirect Loop Exception',
-        message: error?.message || String(error),
+        message,
       });
+      return;
     }
   }
 
@@ -94,32 +107,41 @@ export class AuthController {
   @ApiBearerAuth() // Indicates this endpoint requires a bearer token for Swagger documentation
   @ApiResponse({ status: 200, description: 'Session successfully revoked.' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token.' })
-  async logout(@Req() req: any, @Res() res: any): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async logout(
+    @Req() req: FastifyRequest & { user?: unknown },
+    @Res() res: FastifyReply,
+  ): Promise<void> {
     try {
       // Extract the session ID attached by JwtStrategy
-      const sessionId = req.user.sessionId;
+      const sessionId = (req.user as { sessionId?: string }).sessionId;
 
       if (!sessionId) {
         throw new Error('No active session token identifier found in request.');
       }
 
       // 1. Terminate the database session record
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.service.clearSession(sessionId);
 
       // 2. If you are using HTTP-only cookies for refresh tokens, clear them here:
       // res.clearCookie('refreshToken', { ...cookieOptions });
 
-      // 3. Fastify reply confirmation
-      return res.status(200).send({
+      // 3. Express response confirmation
+      res.status(200).send({
         success: true,
         message: 'Logged out successfully. Token session has been revoked.',
-        sessionId: sessionId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        sessionId,
       });
-    } catch (error: any) {
-      return res.status(400).send({
+      return;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).send({
         error: 'Logout Error',
-        message: error?.message || String(error),
+        message,
       });
+      return;
     }
   }
 

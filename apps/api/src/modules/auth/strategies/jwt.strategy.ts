@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+
 import { AppConfigService } from '../../../common/config/app-config.service.js';
 
 interface JwtPayload {
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   // This validate() method is called automatically by Passport after it verifies the token's signature and expiration.
-  async validate(payload: JwtPayload) {
+  validate(payload: JwtPayload) {
     // If the token signature is valid, Passport passes the decoded payload here.
     console.log('🔑 [JwtStrategy Debug] Full Token Payload:', payload);
     if (!payload.sub) {

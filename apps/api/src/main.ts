@@ -31,16 +31,21 @@ async function bootstrap(): Promise<void> {
   // ---- Passport-Fastify Compatibility Hook ----
   // This shims Express-style methods onto Fastify's response lifecycle
   // so that legacy Passport strategies can safely execute 302 redirects.
-  fastify.getInstance().addHook('onRequest', (req: any, res: any, done: any) => {
-    res.setHeader = (key: string, value: any) => {
+  fastify.getInstance().addHook('onRequest', (req, res, done) => {
+    const shim = res as unknown as {
+      setHeader: (key: string, value: string | number | string[]) => typeof shim;
+      end: (data?: string | Buffer) => typeof shim;
+    };
+    shim.setHeader = (key: string, value: string | number | string[]) => {
       res.raw.setHeader(key, value);
-      return res;
+      return shim;
     };
-    res.end = (data?: any) => {
+    shim.end = (data?: string | Buffer) => {
       res.raw.end(data);
-      return res;
+      return shim;
     };
-    req.res = res;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (req as unknown as Record<string, unknown>).res = shim;
     done();
   });
 
@@ -69,6 +74,7 @@ async function bootstrap(): Promise<void> {
         }),
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Crucial for cross-domain OPTIONS requests
   });
 
   await app.register(cookie, {
@@ -100,7 +106,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // ---- 3. Swagger — must be set up BEFORE compress ----
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     const swagger = new DocumentBuilder()
       .setTitle('arcxde API')
       .setDescription('See docs/conventions/api-design.md for the contract.')
@@ -128,7 +134,7 @@ async function bootstrap(): Promise<void> {
   await app.listen({ port, host });
 
   logger.log(`API listening on http://${host}:${port}`);
-  if (!config.isProduction) {
+  if (config.get('ALLOW_SWAGGER') === true) {
     logger.log(`Swagger UI: http://${host}:${port}/docs`);
   }
 
