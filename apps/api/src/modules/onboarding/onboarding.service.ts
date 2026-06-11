@@ -2,9 +2,8 @@
  * OnboardingService.
  *
  * Application/domain layer:
- *   - Scores each submitted answer by looking up optionWeights on the question.
- *   - Weights stay here; the controller and repository never surface them to
- *     the API consumer.
+ *   - Collects user profiling answers (no correct/incorrect answers).
+ *   - Marks onboarding as completed when all questions are answered.
  *   - Supports a no-auth flow: if no userId is provided, a temporary user is
  *     created and the generated id is returned so the client can persist it.
  */
@@ -25,16 +24,14 @@ export class OnboardingService {
   async submit(body: SubmitOnboardingBody): Promise<OnboardingResult> {
     const userId = await this.repo.findOrCreateTempUser(body.userId);
 
-    const questions = await this.repo.findQuestionsWithWeights(body.role);
+    const questions = await this.repo.findQuestionsForScoring(body.role);
     if (questions.length === 0) {
       throw DomainError.notFound(`OnboardingQuestions for role "${body.role}"`);
     }
 
     const questionMap = new Map(questions.map((q) => [q.id, q]));
 
-    let totalScore = 0;
-    let maxPossibleScore = 0;
-    const answers: { questionId: string; selectedOption: string; selectedWeight: number }[] = [];
+    const answers: { questionId: string; selectedOption: string }[] = [];
 
     for (const ans of body.answers) {
       const question = questionMap.get(ans.questionId);
@@ -53,18 +50,16 @@ export class OnboardingService {
         );
       }
 
-      const selectedWeight = question.optionWeights[idx] ?? 0;
-      totalScore += question.questionWeight * selectedWeight;
-      maxPossibleScore += question.questionWeight;
       answers.push({
         questionId: ans.questionId,
         selectedOption: ans.selectedOption,
-        selectedWeight,
       });
     }
 
-    const normalizedScore = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
-    const profileKey = deriveProfile(normalizedScore);
+    const totalQuestions = answers.length;
+    const totalScore = totalQuestions;
+    const normalizedScore = totalQuestions > 0 ? 100 : 0;
+    const profileKey = 'completed';
 
     await this.repo.saveSubmission({ userId, role: body.role, answers });
     await this.repo.upsertResult(userId, totalScore, normalizedScore, profileKey);
@@ -75,16 +70,6 @@ export class OnboardingService {
       console.error('Failed to mark onboarding complete:', err);
     }
 
-    return { userId, totalScore, normalizedScore, maxPossibleScore, profileKey };
+    return { userId, totalScore, normalizedScore, maxPossibleScore: totalQuestions, profileKey };
   }
-}
-
-function deriveProfile(score: number): string {
-  if (score < 30) {
-    return 'beginner';
-  }
-  if (score < 70) {
-    return 'intermediate';
-  }
-  return 'advanced';
 }

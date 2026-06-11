@@ -7,15 +7,13 @@
  */
 import { Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../prisma/prisma.service.js';
-
 import type { OnboardingQuestion } from '@app/contracts';
 
-export interface QuestionWithWeights {
+import { PrismaService } from '../prisma/prisma.service.js';
+
+export interface QuestionForScoring {
   id: string;
   options: string[];
-  optionWeights: number[];
-  questionWeight: number;
 }
 
 export interface AnswerRecord {
@@ -59,23 +57,19 @@ export class OnboardingRepository {
     );
   }
 
-  /** Returns questions with weights — for internal score computation only. */
-  async findQuestionsWithWeights(role: string): Promise<QuestionWithWeights[]> {
+  /** Returns questions for scoring. */
+  async findQuestionsForScoring(role: string): Promise<QuestionForScoring[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const rows = await this.prisma.onboardingQuestion.findMany({
       where: { role, isActive: true },
       orderBy: { order: 'asc' },
-      select: { id: true, options: true, optionWeights: true, questionWeight: true },
+      select: { id: true, options: true },
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    return rows.map(
-      (r: { id: string; options: unknown; optionWeights: unknown; questionWeight: number }) => ({
-        id: r.id,
-        options: r.options as string[],
-        optionWeights: r.optionWeights as number[],
-        questionWeight: r.questionWeight,
-      }),
-    );
+    return rows.map((r: { id: string; options: unknown }) => ({
+      id: r.id,
+      options: r.options as string[],
+    }));
   }
 
   /**

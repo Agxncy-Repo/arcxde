@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OnboardingQuestion, OnboardingResult } from '@app/contracts';
 
-import type { OnboardingRepository, QuestionWithWeights } from './onboarding.repository.js';
+import type { OnboardingRepository, QuestionForScoring } from './onboarding.repository.js';
 import { OnboardingService } from './onboarding.service.js';
 
 const ROLE = 'developer';
@@ -17,18 +17,16 @@ const displayQuestion = (overrides: Partial<OnboardingQuestion> = {}): Onboardin
   ...overrides,
 });
 
-const scoringQuestion = (overrides: Partial<QuestionWithWeights> = {}): QuestionWithWeights => ({
+const scoringQuestion = (overrides: Partial<QuestionForScoring> = {}): QuestionForScoring => ({
   id: 'obq_550e8400e29b41d4a716446655440000',
   options: ['I rarely use AI', 'I use AI occasionally', 'I use AI regularly'],
-  optionWeights: [0.2, 0.6, 1.0],
-  questionWeight: 1.0,
   ...overrides,
 });
 
 const makeRepo = (): OnboardingRepository =>
   ({
     findQuestionsForDisplay: vi.fn(),
-    findQuestionsWithWeights: vi.fn(),
+    findQuestionsForScoring: vi.fn(),
     findOrCreateTempUser: vi.fn(),
     saveSubmission: vi.fn(),
     upsertResult: vi.fn(),
@@ -55,42 +53,39 @@ describe('OnboardingService', () => {
   });
 
   describe('submit', () => {
-    it('computes totalScore, normalizedScore and profileKey correctly', async () => {
+    it('marks onboarding as completed when all questions are answered', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      // 3 questions with varying weights
-      const questions = [
-        scoringQuestion({ id: 'obq_1', optionWeights: [0.2, 0.6, 1.0], questionWeight: 1.0 }),
-        scoringQuestion({ id: 'obq_2', optionWeights: [0.3, 0.7, 1.0], questionWeight: 2.0 }),
-        scoringQuestion({ id: 'obq_3', optionWeights: [0.1, 0.5, 1.0], questionWeight: 1.0 }),
-      ];
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue(questions);
+      const questions = Array.from({ length: 5 }, (_, i) => ({
+        id: `obq_${i}`,
+        options: ['I rarely use AI', 'I use AI occasionally', 'I use AI regularly'],
+      }));
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue(questions);
       vi.mocked(repo.saveSubmission).mockResolvedValue(undefined);
       vi.mocked(repo.upsertResult).mockResolvedValue(undefined);
 
-      // Pick highest-weight option for each (index 2 = weight 1.0)
+      const answers = questions.map((q) => ({
+        questionId: q.id,
+        selectedOption: 'I use AI occasionally',
+      }));
+
       const result = await service.submit({
         role: ROLE,
-        answers: [
-          { questionId: 'obq_1', selectedOption: 'I use AI regularly' },
-          { questionId: 'obq_2', selectedOption: 'I use AI regularly' },
-          { questionId: 'obq_3', selectedOption: 'I use AI regularly' },
-        ],
+        answers,
       });
 
-      // All max weights: totalScore = 1*1.0 + 2*1.0 + 1*1.0 = 4.0, maxPossible = 4.0, normalized = 100%
       expect(result).toMatchObject<OnboardingResult>({
         userId: USER_ID,
-        totalScore: 4,
+        totalScore: 5,
         normalizedScore: 100,
-        maxPossibleScore: 4,
-        profileKey: 'advanced',
+        maxPossibleScore: 5,
+        profileKey: 'completed',
       });
       expect(repo.markOnboardingComplete).toHaveBeenCalledWith(USER_ID);
     });
 
-    it('assigns "beginner" profile for low scores', async () => {
+    it('completes onboarding with any valid answer', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue([scoringQuestion()]);
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue([scoringQuestion()]);
       vi.mocked(repo.saveSubmission).mockResolvedValue(undefined);
       vi.mocked(repo.upsertResult).mockResolvedValue(undefined);
 
@@ -101,13 +96,13 @@ describe('OnboardingService', () => {
         ],
       });
 
-      expect(result.profileKey).toBe('beginner');
-      expect(result.normalizedScore).toBe(20); // 0.2 weight * 1.0 questionWeight / 1.0 max * 100
+      expect(result.profileKey).toBe('completed');
+      expect(result.normalizedScore).toBe(100); // All questions answered
     });
 
     it('throws NOT_FOUND when no questions exist for the role', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue([]);
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue([]);
 
       await expect(
         service.submit({
@@ -119,7 +114,7 @@ describe('OnboardingService', () => {
 
     it('throws BAD_REQUEST when questionId is not active for the role', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue([scoringQuestion()]);
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue([scoringQuestion()]);
 
       await expect(
         service.submit({
@@ -133,7 +128,7 @@ describe('OnboardingService', () => {
 
     it('throws BAD_REQUEST when selectedOption is not valid', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue([scoringQuestion()]);
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue([scoringQuestion()]);
 
       await expect(
         service.submit({
@@ -150,7 +145,7 @@ describe('OnboardingService', () => {
 
     it('creates a temp user when userId is not provided', async () => {
       vi.mocked(repo.findOrCreateTempUser).mockResolvedValue(USER_ID);
-      vi.mocked(repo.findQuestionsWithWeights).mockResolvedValue([scoringQuestion()]);
+      vi.mocked(repo.findQuestionsForScoring).mockResolvedValue([scoringQuestion()]);
       vi.mocked(repo.saveSubmission).mockResolvedValue(undefined);
       vi.mocked(repo.upsertResult).mockResolvedValue(undefined);
 
