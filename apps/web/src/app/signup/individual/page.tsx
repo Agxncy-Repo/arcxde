@@ -144,9 +144,9 @@ export default function IndividualSignupPage() {
           padding: 'clamp(32px, 5vw, 46px) clamp(24px, 5vw, 42px)',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'stretch',
         }}
       >
-        {/* Title + description live inside the card, not in the left panel */}
         <h2
           style={{
             fontFamily: FONT,
@@ -172,14 +172,15 @@ export default function IndividualSignupPage() {
           Sign up with the Google account you use for work or with your work email address.
         </p>
 
-        {/* Google button — full width */}
-        <GoogleButton
-          onClick={redirectToGoogle}
-          disabled={isRedirecting}
-          label={isRedirecting ? 'Connecting...' : 'Sign Up with Google'}
-          isLoading={isRedirecting}
-          style={{ width: '100%' }}
-        />
+        {/* Google button — centered, auto width */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+          <GoogleButton
+            onClick={redirectToGoogle}
+            disabled={isRedirecting}
+            label={isRedirecting ? 'Connecting...' : 'Sign Up with Google'}
+            isLoading={isRedirecting}
+          />
+        </div>
 
         {/* OR inline divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
