@@ -7,14 +7,14 @@ const FONT = "'Geist', system-ui, sans-serif";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  leftHeading?: string;
-  leftDescription?: string;
+  brandText?: string;
+  brandDescription?: string;
 }
 
 export const AuthLayout = ({
   children,
-  leftHeading = 'Lorem ipsum dolor sit amet',
-  leftDescription = 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  brandText = 'Lorem ipsum dolor sit amet',
+  brandDescription = 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
 }: AuthLayoutProps) => {
   return (
     <div
@@ -33,7 +33,7 @@ export const AuthLayout = ({
             size="lg"
             style={{ marginBottom: 'clamp(20px, 5vw, 34px)', width: 'clamp(180px, 25vw, 228px)' }}
           />
-          {leftHeading && (
+          {brandText && (
             <h2
               style={{
                 fontFamily: FONT,
@@ -43,10 +43,10 @@ export const AuthLayout = ({
                 margin: '0 0 24px',
               }}
             >
-              {leftHeading}
+              {brandText}
             </h2>
           )}
-          {leftDescription && (
+          {brandDescription && (
             <p
               style={{
                 fontFamily: FONT,
@@ -57,7 +57,7 @@ export const AuthLayout = ({
                 margin: 0,
               }}
             >
-              {leftDescription}
+              {brandDescription}
             </p>
           )}
         </div>
