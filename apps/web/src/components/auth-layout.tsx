@@ -7,9 +7,7 @@ const FONT = "'Geist', system-ui, sans-serif";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  /** Override the left-panel heading. Defaults to the Arcxde brand tagline. */
   leftHeading?: string;
-  /** Override the left-panel body text. Defaults to the Arcxde brand description. */
   leftDescription?: string;
 }
 
@@ -35,29 +33,33 @@ export const AuthLayout = ({
             size="lg"
             style={{ marginBottom: 'clamp(20px, 5vw, 34px)', width: 'clamp(180px, 25vw, 228px)' }}
           />
-          <h2
-            style={{
-              fontFamily: FONT,
-              fontSize: 'clamp(24px, 5vw, 34px)',
-              fontWeight: 400,
-              color: '#d9d6d0',
-              margin: '0 0 24px',
-            }}
-          >
-            {leftHeading}
-          </h2>
-          <p
-            style={{
-              fontFamily: FONT,
-              fontSize: 'clamp(14px, 2vw, 16px)',
-              lineHeight: 1.55,
-              color: 'rgba(255,255,255,0.4)',
-              maxWidth: 520,
-              margin: 0,
-            }}
-          >
-            {leftDescription}
-          </p>
+          {leftHeading && (
+            <h2
+              style={{
+                fontFamily: FONT,
+                fontSize: 'clamp(24px, 5vw, 34px)',
+                fontWeight: 400,
+                color: '#d9d6d0',
+                margin: '0 0 24px',
+              }}
+            >
+              {leftHeading}
+            </h2>
+          )}
+          {leftDescription && (
+            <p
+              style={{
+                fontFamily: FONT,
+                fontSize: 'clamp(14px, 2vw, 16px)',
+                lineHeight: 1.55,
+                color: 'rgba(255,255,255,0.4)',
+                maxWidth: 520,
+                margin: 0,
+              }}
+            >
+              {leftDescription}
+            </p>
+          )}
         </div>
 
         {/* Form Content */}
