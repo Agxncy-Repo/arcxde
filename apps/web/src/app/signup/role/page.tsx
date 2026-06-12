@@ -1,13 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SlantEgg } from '@/components/slant-egg';
 import { RoleCard } from '@/components/role-card';
 import { useUserStore } from '@/store/user-store';
 
-const FONT = "'Suisse Int\\'l', system-ui, sans-serif";
+const FONT = "'Geist', system-ui, sans-serif";
+
+const continueBtnStyle = (enabled: boolean): React.CSSProperties => ({
+  width: '100%',
+  padding: '22px',
+  borderRadius: 18,
+  border: 'none',
+  cursor: enabled ? 'pointer' : 'default',
+  fontFamily: FONT,
+  fontSize: 18,
+  fontWeight: 500,
+  color: '#1a1917',
+  background: 'linear-gradient(180deg,#fbf8f1,#ece7db)',
+  boxShadow: '0 12px 30px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.7)',
+  opacity: enabled ? 1 : 0.82,
+  transition: 'opacity .15s ease',
+});
 
 const ROLES = [
   {
@@ -49,6 +64,27 @@ const HYBRID = {
     'Multidisciplinary professionals working across strategy, product, design, technology and operations.',
 };
 
+function AuthCallbackHandler() {
+  const searchParams = useSearchParams();
+  const setUser = useUserStore((s) => s.setUser);
+
+  useEffect(() => {
+    const accessToken = searchParams.get('accessToken');
+    if (accessToken) {
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        if (payload.sub) {
+          setUser(payload.sub, accessToken);
+        }
+      } catch {
+        // ignore decode errors
+      }
+    }
+  }, [searchParams, setUser]);
+
+  return null;
+}
+
 export default function RoleSelectionPage() {
   const router = useRouter();
   const setRole = useUserStore((s) => s.setRole);
@@ -62,105 +98,81 @@ export default function RoleSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#222] overflow-hidden relative" style={{ minHeight: 1024 }}>
-      <div style={{ position: 'absolute', top: 38, left: 47 }}>
-        <SlantEgg size="sm" />
-      </div>
-
-      {/* Back arrow — top 151, left 178 */}
-      <Link
-        href="/signup/individual"
-        style={{
-          position: 'absolute',
-          top: 151,
-          left: 178,
-          fontFamily: FONT,
-          fontSize: 32,
-          fontWeight: 100,
-          lineHeight: '100%',
-          color: 'white',
-          textDecoration: 'none',
-        }}
+    <>
+      <Suspense fallback={null}>
+        <AuthCallbackHandler />
+      </Suspense>
+      <div
+        className="flex flex-col px-4 pt-12 pb-24 justify-center items-center sm:px-11 sm:py-16"
+        style={{ background: '#272727', fontFamily: FONT, minHeight: '100dvh' }}
       >
-        ←
-      </Link>
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 sm:gap-8">
+          <SlantEgg size="sm" className="self-start" style={{ width: 'clamp(50px, 12vw, 62px)' }} />
 
-      <h1
-        style={{
-          position: 'absolute',
-          top: 185,
-          left: 466,
-          width: 453,
-          fontFamily: FONT,
-          fontSize: 32,
-          fontWeight: 450,
-          lineHeight: '100%',
-          color: 'white',
-          margin: 0,
-        }}
-      >
-        Select the role that best reflects how you work with AI.
-      </h1>
-
-      {[
-        [ROLES[0], ROLES[1]],
-        [ROLES[2], ROLES[3]],
-        [ROLES[4], ROLES[5]],
-      ].map((pair, row) => {
-        const rowTop = [303, 441, 581][row];
-        return pair.map((role, col) => (
           <div
-            key={role.id}
-            style={{ position: 'absolute', top: rowTop, left: col === 0 ? 307 : 733, width: 399.1 }}
+            style={{
+              border: '1px solid rgba(255,255,255,0.16)',
+              borderRadius: 34,
+              padding: 'clamp(28px, 6vw, 48px) clamp(24px, 6vw, 44px)',
+            }}
           >
-            <RoleCard
-              title={role.title}
-              description={role.description}
-              name="role"
-              value={role.id}
-              checked={selected === role.id}
-              onChange={() => setSelected(role.id)}
-              cardSize="sm"
-            />
+            <h1
+              style={{
+                fontFamily: FONT,
+                fontSize: 'clamp(24px, 5vw, 34px)',
+                fontWeight: 500,
+                letterSpacing: '-0.5px',
+                lineHeight: 1.25,
+                color: '#ece9e3',
+                margin: 0,
+              }}
+            >
+              Select the role that best reflects how you work with AI.
+            </h1>
+
+            <div
+              role="group"
+              className="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2"
+              style={{ marginTop: 'clamp(24px, 5vw, 38px)' }}
+            >
+              {ROLES.map((role) => (
+                <RoleCard
+                  key={role.id}
+                  title={role.title}
+                  description={role.description}
+                  name="role"
+                  value={role.id}
+                  checked={selected === role.id}
+                  onChange={() => setSelected(role.id)}
+                  cardSize="sm"
+                />
+              ))}
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <RoleCard
+                title={HYBRID.title}
+                description={HYBRID.description}
+                name="role"
+                value={HYBRID.id}
+                checked={selected === HYBRID.id}
+                onChange={() => setSelected(HYBRID.id)}
+                cardSize="md"
+              />
+            </div>
           </div>
-        ));
-      })}
 
-      <div style={{ position: 'absolute', top: 721, left: 490, width: 467.2 }}>
-        <RoleCard
-          title={HYBRID.title}
-          description={HYBRID.description}
-          name="role"
-          value={HYBRID.id}
-          checked={selected === HYBRID.id}
-          onChange={() => setSelected(HYBRID.id)}
-          cardSize="md"
-        />
+          <div className="shrink-0">
+            <button
+              onClick={handleContinue}
+              disabled={!selected}
+              style={continueBtnStyle(!!selected)}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       </div>
-
-      <button
-        disabled={!selected}
-        onClick={handleContinue}
-        style={{
-          position: 'absolute',
-          top: 913,
-          left: 966,
-          width: 166,
-          height: 38,
-          borderRadius: 20,
-          border: '1px solid #6b6b6b',
-          background: selected ? '#fff' : 'transparent',
-          color: selected ? '#222' : '#6b6b6b',
-          fontFamily: FONT,
-          fontSize: 18,
-          fontWeight: 300,
-          lineHeight: '100%',
-          cursor: selected ? 'pointer' : 'default',
-          transition: 'all 0.15s',
-        }}
-      >
-        continue
-      </button>
-    </div>
+    </>
   );
 }
