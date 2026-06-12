@@ -107,7 +107,7 @@ function OnboardingQuestionsContent() {
 
   const handleContinue = () => {
     if (isLast) {
-      if (!userId) {
+      if (!userId || !currentRole) {
         router.push('/signup/role');
         return;
       }
